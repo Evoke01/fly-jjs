@@ -8,24 +8,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-deep: #000000;
-            --bg-card: #0a0a0a;
-            --bg-card-hover: #111111;
-            --border: #222222;
-            --text: #ededed;
-            --text-dim: #888888;
+            --bg-deep: #09090b;
+            --bg-card: #18181b;
+            --bg-card-hover: #27272a;
+            --border: #3f3f46;
+            --text: #e4e4e7;
+            --text-dim: #a1a1aa;
             --text-bright: #ffffff;
-            --accent-orange: #ffffff;
-            --accent-orange-glow: #ffffff10;
-            --accent-blue: #ffffff;
-            --accent-blue-glow: #ffffff10;
-            --accent-purple: #ffffff;
-            --accent-green: #ffffff;
-            --accent-red: #ffffff;
-            --accent-yellow: #ffffff;
-            --gradient-fire: linear-gradient(135deg, #ffffff, #a0a0a0);
-            --gradient-ice: linear-gradient(135deg, #ffffff, #a0a0a0);
-            --gradient-card: linear-gradient(180deg, #0a0a0a 0%, #000000 100%);
+            --accent-orange: #f97316;
+            --accent-orange-glow: #f9731630;
+            --accent-blue: #3b82f6;
+            --accent-blue-glow: #3b82f630;
+            --accent-purple: #a855f7;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-yellow: #eab308;
+            --gradient-fire: linear-gradient(135deg, #f97316, #a855f7);
+            --gradient-ice: linear-gradient(135deg, #3b82f6, #22c55e);
+            --gradient-card: linear-gradient(180deg, #18181b 0%, #09090b 100%);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1020,6 +1020,31 @@ pip install -r requirements.txt
 
 <span class="comment"># 3. Start the Interactive Menu</span>
 python main.py
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- NEURAL POPULATION VOTING -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section>
+        <div class="container fade-in">
+            <div class="section-label">Action Selection</div>
+            <h2 class="section-title">The Neural Voting Mechanism</h2>
+            <p class="section-desc">
+                The fly brain doesn't just push a single button. It processes actions through a decentralized <strong>population voting system</strong>.
+            </p>
+            <div style="background: var(--bg-card); border: 1px solid var(--border); padding: 24px; border-radius: 12px; margin-top: 24px;">
+                <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: var(--text-bright);">How it works:</h3>
+                <ul style="color: var(--text-dim); padding-left: 20px; margin-bottom: 16px;">
+                    <li style="margin-bottom: 8px;">Out of the <strong>130,000 total neurons</strong>, thousands might be active at any given millisecond.</li>
+                    <li style="margin-bottom: 8px;">Different groups of these active neurons are mapped to different physical actions.</li>
+                    <li style="margin-bottom: 8px;">If one group of neurons strongly wants to press <strong>W (forward)</strong>, but a competing group wants to press <strong>D (right)</strong>, the brain tallies up the "spikes" in each population.</li>
+                    <li>The population with the <strong>highest vote count</strong> (most electrical activity) wins the race, and that specific action gets executed on your keyboard!</li>
+                </ul>
+                <p style="color: var(--accent-orange); font-size: 0.9rem; font-weight: 600;">
+                    This means the fly is constantly debating itself in real-time, just like a biological organism!
+                </p>
             </div>
         </div>
     </section>
