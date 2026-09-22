@@ -8,12 +8,12 @@ def clear_screen():
 
 def print_header():
     print("\x1b[38;5;46m" + r"""
-    ███████╗██╗     ██╗   ██╗     ██╗██╗███████╗
-    ██╔════╝██║     ╚██╗ ██╔╝     ██║██║██╔════╝
-    █████╗  ██║      ╚████╔╝      ██║██║███████╗
-    ██╔══╝  ██║       ╚██╔╝  ██   ██║██║╚════██║
-    ██║     ███████╗   ██║   ╚█████╔╝██║███████║
-    ╚═╝     ╚══════╝   ╚═╝    ╚════╝ ╚═╝╚══════╝
+    ███████╗██╗     ██╗   ██╗         ██╗     ██╗███████╗
+    ██╔════╝██║     ╚██╗ ██╔╝         ██║     ██║██╔════╝
+    █████╗  ██║      ╚████╔╝          ██║     ██║███████╗
+    ██╔══╝  ██║       ╚██╔╝      ██   ██║██   ██║╚════██║
+    ██║     ███████╗   ██║       ╚█████╔╝╚█████╔╝███████║
+    ╚═╝     ╚══════╝   ╚═╝        ╚════╝  ╚════╝ ╚══════╝
     """ + "\x1b[0m")
     print("\x1b[38;5;239m" + "═" * 60 + "\x1b[0m")
     print("   \x1b[1m\x1b[38;5;226mBIOLOGICAL REINFORCEMENT LEARNING SIMULATOR\x1b[0m")
@@ -90,7 +90,6 @@ def main():
         elif choice == '4':
             clear_screen()
             print("\n  \x1b[38;5;111m[+] Checking GitHub for updates...\x1b[0m\n")
-            # Run git pull
             if os.name == 'nt':
                 os.system("git pull")
             else:
@@ -105,7 +104,7 @@ def main():
             sys.exit(0)
             
         else:
-            print("\n  \x1b[38;5;196m[!] Invalid command. Please select 1, 2, 3, 4, or 5.\x1b[0m")
+            print("\n  \x1b[38;5;196m[!] Invalid command. Please select 1-5.\x1b[0m")
             time.sleep(1)
 
 if __name__ == "__main__":
