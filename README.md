@@ -15,7 +15,7 @@ By observing your gameplay or playing on its own, the fly learns to fight using 
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/flybrain/fly-jjs.git
+   git clone https://github.com/Evoke01/fly-jjs.git
    cd fly-jjs
    ```
 
