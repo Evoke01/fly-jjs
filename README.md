@@ -4,6 +4,9 @@
 
 This project connects a scientifically accurate simulation of a fruit fly's brain to **Roblox (Jujutsu Shenanigans)**. Instead of using traditional algorithms, it uses the actual connectome (wiring diagram) of a fruit fly to perceive the screen and control the character.
 
+> **⚠️ IMPORTANT DISCLAIMER:**
+> This simulation runs on a **mapped digital connectome**. It is purely a digital structure containing simulated neurons and synapses based on biological data. **This is NOT an actual biological brain, and it is NOT a sentient being.** No real flies are playing this game!
+
 By observing your gameplay or playing on its own, the fly learns to fight using real biological reinforcement learning (dopamine-driven plasticity).
 
 ## Features
@@ -50,6 +53,12 @@ Starts the supervised imitation learning mode.
 - The fly will observe your key presses and screen visuals. 
 - It will automatically update its weights (`fly_weights.npy`) to mimic your playstyle.
 - **To stop:** Press `Q` or `ESC` to save the weights and exit.
+
+### `[3] Wipe Memory`
+Deletes the current `fly_weights.npy` file, erasing all learned behaviors and returning the fly to a blank slate.
+
+### `[4] Check for Updates`
+Pulls the latest code and features from the GitHub repository automatically.
 
 ---
 
