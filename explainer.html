@@ -656,6 +656,17 @@
         <div class="container fade-in">
             <div class="section-label">The Science</div>
             <h2 class="section-title">What is a Simulated Fly Brain?</h2>
+            
+            <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--accent-red); padding: 16px; border-radius: 4px; margin-bottom: 24px;">
+                <strong style="color: var(--accent-red); display: block; margin-bottom: 4px;">⚠️ Important Disclaimer</strong>
+                <span style="color: var(--text-dim); font-size: 0.95rem;">
+                    This simulation runs on a <strong>mapped digital connectome</strong> of a fruit fly's brain. 
+                    It is purely a digital structure containing simulated neurons and synapses based on biological data. 
+                    <strong>This is NOT an actual biological brain, and it is NOT a sentient being.</strong> 
+                    No real flies are playing this game!
+                </span>
+            </div>
+
             <p class="section-desc">
                 In 2024, neuroscientists completed the full connectome of the fruit fly 
                 (<em>Drosophila melanogaster</em>). Every single neuron, every single synapse, 
@@ -664,7 +675,7 @@
 
             <div class="intro-grid">
                 <div class="card">
-                    <div class="intro-card-icon orange">🧬</div>
+                    <div class="intro-card-icon orange"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg></div>
                     <h3>Real Connectome Data</h3>
                     <p>
                         This isn't a toy neural network. It's a one-to-one simulation of an actual 
@@ -673,7 +684,7 @@
                     </p>
                 </div>
                 <div class="card">
-                    <div class="intro-card-icon blue">⚡</div>
+                    <div class="intro-card-icon blue"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></div>
                     <h3>Spiking Neural Network</h3>
                     <p>
                         Unlike typical models that use math formulas, this brain uses <strong>spikes</strong> — 
@@ -682,7 +693,7 @@
                     </p>
                 </div>
                 <div class="card">
-                    <div class="intro-card-icon purple">🪰</div>
+                    <div class="intro-card-icon purple"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="14" x="8" y="6" rx="4"/><path d="m19 7-3 2"/><path d="m5 7 3 2"/><path d="m19 19-3-2"/><path d="m5 19 3-2"/><path d="M20 13h-4"/><path d="M4 13h4"/><path d="m9 4 1 2"/><path d="m15 4-1 2"/></svg></div>
                     <h3>Hardwired by Evolution</h3>
                     <p>
                         A fruit fly's brain has been optimized by 200 million years of evolution. 
@@ -691,7 +702,7 @@
                     </p>
                 </div>
                 <div class="card">
-                    <div class="intro-card-icon green">🎮</div>
+                    <div class="intro-card-icon green"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="12" y2="12"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="15" x2="15.01" y1="13" y2="13"/><line x1="18" x2="18.01" y1="11" y2="11"/><rect width="20" height="12" x="2" y="6" rx="2"/></svg></div>
                     <h3>Connected to Roblox</h3>
                     <p>
                         We feed the game's screen into the fly's visual neurons, let the brain 
@@ -719,7 +730,7 @@
                 <div class="pipeline-step">
                     <div class="pipeline-dot">1</div>
                     <div class="pipeline-content">
-                        <h3>👁️ Screen Capture → Retina</h3>
+                        <h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: sub; margin-right: 8px;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Screen Capture → Retina</h3>
                         <p>
                             The game screen is captured and downsampled to an <code>8×8 pixel</code> grid — 
                             64 intensity values representing what the fly "sees." This is injected as 
@@ -733,7 +744,7 @@
                 <div class="pipeline-step">
                     <div class="pipeline-dot">2</div>
                     <div class="pipeline-content">
-                        <h3>🧠 Brain Simulation</h3>
+                        <h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: sub; margin-right: 8px;"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>Brain Simulation</h3>
                         <p>
                             The injected visual data flows through the connectome. 130,000 neurons 
                             update their voltages based on 50 million synaptic weights. Neurons that cross 
@@ -746,7 +757,7 @@
                 <div class="pipeline-step">
                     <div class="pipeline-dot">3</div>
                     <div class="pipeline-content">
-                        <h3>📊 Population Voting (Readout)</h3>
+                        <h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: sub; margin-right: 8px;"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>Population Voting (Readout)</h3>
                         <p>
                             We read out the <strong>Descending Neurons (DNs)</strong> — these are the 
                             fly's motor command neurons that connect the brain to the body. Groups of 
@@ -760,7 +771,7 @@
                 <div class="pipeline-step">
                     <div class="pipeline-dot">4</div>
                     <div class="pipeline-content">
-                        <h3>🎯 Action Execution</h3>
+                        <h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: sub; margin-right: 8px;"><circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/></svg>Action Execution</h3>
                         <p>
                             The winning actions are translated into real keystrokes via 
                             <code>pydirectinput</code>. Forward → <strong>W</strong>, strafe → 
@@ -773,7 +784,7 @@
                 <div class="pipeline-step">
                     <div class="pipeline-dot">5</div>
                     <div class="pipeline-content">
-                        <h3>🔄 Arousal Feedback Loop</h3>
+                        <h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: sub; margin-right: 8px;"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>Arousal Feedback Loop</h3>
                         <p>
                             The fly's overall brain activity is tracked over time as an <strong>arousal level</strong>. 
                             As more neurons fire, the fly becomes more agitated — its thresholds drop, 
@@ -1085,7 +1096,7 @@ atk_rate  = <span class="function">sum</span>(<span class="number">1</span> <spa
     <footer>
         <div class="container">
             <p style="margin-bottom: 8px;">
-                Built with 🪰 <strong>FlyBrain</strong> — a Python library for simulating the 
+                Built with <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin: 0 4px;"><rect width="8" height="14" x="8" y="6" rx="4"/><path d="m19 7-3 2"/><path d="m5 7 3 2"/><path d="m19 19-3-2"/><path d="m5 19 3-2"/><path d="M20 13h-4"/><path d="M4 13h4"/><path d="m9 4 1 2"/><path d="m15 4-1 2"/></svg><strong>FlyBrain</strong> — a Python library for simulating the 
                 <em>Drosophila melanogaster</em> connectome
             </p>
             <p>
