@@ -33,7 +33,10 @@ def print_menu():
     print("  \x1b[38;5;196m[ 3 ] 🗑️   Wipe Memory\x1b[0m")
     print("        \x1b[38;5;244mDelete the weights.npy file and start from a blank slate.\x1b[0m\n")
     
-    print("  \x1b[38;5;240m[ 4 ] ❌  Exit System\x1b[0m\n")
+    print("  \x1b[38;5;111m[ 4 ] 🔄  Check for Updates\x1b[0m")
+    print("        \x1b[38;5;244mPull the latest code and features from GitHub.\x1b[0m\n")
+    
+    print("  \x1b[38;5;240m[ 5 ] ❌  Exit System\x1b[0m\n")
     
     print("\x1b[38;5;239m" + "─" * 60 + "\x1b[0m")
     print("  \x1b[3;38;5;240mPowered by connectome data from Janelia Research (HHMI)\x1b[0m")
@@ -85,11 +88,23 @@ def main():
             
         elif choice == '4':
             clear_screen()
+            print("\n  \x1b[38;5;111m[+] Checking GitHub for updates...\x1b[0m\n")
+            # Run git pull
+            if os.name == 'nt':
+                os.system("git pull")
+            else:
+                os.system("git pull")
+            
+            print("\n\x1b[38;5;239m" + "=" * 60 + "\x1b[0m")
+            input("  \x1b[38;5;244mPress Enter to return to the menu...\x1b[0m")
+            
+        elif choice == '5':
+            clear_screen()
             print("\n  \x1b[38;5;46mShutting down FlyBrain simulator... Goodbye!\x1b[0m\n")
             sys.exit(0)
             
         else:
-            print("\n  \x1b[38;5;196m[!] Invalid command.\x1b[0m")
+            print("\n  \x1b[38;5;196m[!] Invalid command. Please select 1, 2, 3, 4, or 5.\x1b[0m")
             time.sleep(1)
 
 if __name__ == "__main__":
