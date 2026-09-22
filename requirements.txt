@@ -1,0 +1,11 @@
+flybrain
+mss
+opencv-python
+pydirectinput
+numpy
+pynput
+scikit-learn
+matplotlib
+yt-dlp
+pygame-ce
+librosa
