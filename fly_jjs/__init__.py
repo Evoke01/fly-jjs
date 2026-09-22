@@ -1,4 +1,4 @@
 """
-Fly JJS RL Bot Package
+Fly JJS RL Fly Brain Package
 """
 __version__ = "0.1.0"
