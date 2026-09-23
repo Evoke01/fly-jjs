@@ -163,9 +163,10 @@ def get_pixel_grids(img):
     g = img[:, :, 1].astype(float)
     r = img[:, :, 2].astype(float)
     
-    # Calculate "red-ness" and "blue-ness" by subtracting the other channels
-    redness = np.clip(r - (g + b) * 0.5, 0, 255).astype(np.uint8)
-    blueness = np.clip(b - (r + g) * 0.5, 0, 255).astype(np.uint8)
+    # Calculate "red-ness" and "blue-ness" aggressively
+    # Subtracting the maximum of the other colors ensures we only see pure colors
+    redness = np.clip(r * 2.0 - np.maximum(g, b) * 1.5, 0, 255).astype(np.uint8)
+    blueness = np.clip(b * 2.0 - np.maximum(r, g) * 1.5, 0, 255).astype(np.uint8)
     
     red_small = cv2.resize(redness, (8, 8), interpolation=cv2.INTER_AREA)
     blue_small = cv2.resize(blueness, (8, 8), interpolation=cv2.INTER_AREA)
@@ -224,8 +225,8 @@ def run_trainer():
         # ── 3. Brain step (same injections as fly_rl.py) ──
         injections = fd.inject(opp=opp, threat=threat)
         for i in range(64):
-            injections.append((retina_r[i], pixels_r[i] * 1.5))
-            injections.append((retina_b[i], pixels_b[i] * 1.5))
+            injections.append((retina_r[i], pixels_r[i] * 5.0))
+            injections.append((retina_b[i], pixels_b[i] * 5.0))
 
         fired_neurons = brain.step(inject=injections)
         fired_set = set(fired_neurons)
