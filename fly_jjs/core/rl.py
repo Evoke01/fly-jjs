@@ -63,11 +63,12 @@ print(f"[Brain] {len(dans)} dopamine neurons available")
 
 # Visual neurons (compound eye retina)
 vis = brain.cells(["LC4", "LPLC2", "LC16"])
-if len(vis) < 64:
+if len(vis) < 128:
     vis = brain.cells(["KenyonCell"])
-    if len(vis) < 64:
-        vis = dns[:64]
-retina = vis[:64]
+    if len(vis) < 128:
+        vis = dns[:128]
+retina_r = vis[:64]
+retina_b = vis[64:128]
 
 # ── POPULATION GROUPS ─────────────────────────────────
 # Each action is driven by a population of descending neurons
@@ -530,11 +531,21 @@ class FlyLearner:
 # =====================================================
 # VISION PIPELINE
 # =====================================================
-def get_pixel_grid(img):
-    """Downsample screen capture to 8x8 compound-eye retina."""
-    gray = cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
-    small = cv2.resize(gray, (8, 8), interpolation=cv2.INTER_AREA)
-    return small.flatten() / 255.0, gray
+def get_pixel_grids(img):
+    """Downsample screen capture to 8x8 Red and Blue compound-eye retinas."""
+    # Split channels (img is BGR or BGRA)
+    b = img[:, :, 0].astype(float)
+    g = img[:, :, 1].astype(float)
+    r = img[:, :, 2].astype(float)
+    
+    # Calculate "red-ness" and "blue-ness" by subtracting the other channels
+    redness = np.clip(r - (g + b) * 0.5, 0, 255).astype(np.uint8)
+    blueness = np.clip(b - (r + g) * 0.5, 0, 255).astype(np.uint8)
+    
+    red_small = cv2.resize(redness, (8, 8), interpolation=cv2.INTER_AREA)
+    blue_small = cv2.resize(blueness, (8, 8), interpolation=cv2.INTER_AREA)
+    
+    return red_small.flatten() / 255.0, blue_small.flatten() / 255.0, cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
 
 
 def detect_opponent(gray, width, height):
@@ -573,7 +584,7 @@ for _ in range(5):
     brain_memory.append(0.0)
 
 
-def run_brain(opp, threat, pixels, motion, dopamine_level):
+def run_brain(opp, threat, pixels_r, pixels_b, motion, dopamine_level):
     """
     Run one simulation step of the fly brain.
     Injects: visual input + retina pixels + motion boost +
@@ -586,15 +597,17 @@ def run_brain(opp, threat, pixels, motion, dopamine_level):
     # ── SENSORY INJECTION ──
     injections = fd.inject(opp=opp, threat=threat)
 
-    # Retina: 8x8 pixel grid → visual neurons (compound eye)
+    # Retina: 8x8 Red and 8x8 Blue grids → visual neurons
     for i in range(64):
-        injections.append((retina[i], pixels[i] * 1.5))
+        injections.append((retina_r[i], pixels_r[i] * 1.5))
+        injections.append((retina_b[i], pixels_b[i] * 1.5))
 
     # Motion boost — sudden changes excite looming detectors
     if motion > 0.05:
         boost = min(motion * 3.0, 2.0)
-        for i in range(min(32, len(retina))):
-            injections.append((retina[i], boost))
+        for i in range(min(32, len(retina_r))):
+            injections.append((retina_r[i], boost))
+            injections.append((retina_b[i], boost))
 
     # Arousal feedback — agitated fly gets more baseline stimulation
     if arousal > 0.3:
@@ -708,7 +721,7 @@ POP_COLORS = [
 
 
 def build_panel(brain_state, actions, fired, pop_rates,
-                arousal_val, avg_act, pixels, learner, reward_sys):
+                arousal_val, avg_act, pixels_r, pixels_b, learner, reward_sys):
     """Build the full visualization panel with brain + dashboard."""
     global neuron_heat
 
@@ -731,14 +744,27 @@ def build_panel(brain_state, actions, fired, pop_rates,
     cv2.putText(dash, f"Active: {fired}/{num_dns}", (280, 25),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.45, (160, 160, 160), 1)
 
-    # Eye view (what the 8x8 retina sees)
-    eye = cv2.resize(
-        (pixels.reshape(8, 8) * 255).astype(np.uint8),
+    # Red Eye view (what the 8x8 retina sees)
+    eye_r = cv2.resize(
+        (pixels_r.reshape(8, 8) * 255).astype(np.uint8),
         (50, 50), interpolation=cv2.INTER_NEAREST,
     )
-    eye_c = cv2.cvtColor(eye, cv2.COLOR_GRAY2BGR)
-    cv2.rectangle(eye_c, (0, 0), (49, 49), (0, 255, 0), 1)
-    dash[5:55, 445:495] = eye_c
+    eye_c_r = cv2.cvtColor(eye_r, cv2.COLOR_GRAY2BGR)
+    eye_c_r[:,:,0] = 0 # zero out blue
+    eye_c_r[:,:,1] = 0 # zero out green
+    cv2.rectangle(eye_c_r, (0, 0), (49, 49), (0, 0, 255), 1)
+    dash[5:55, 385:435] = eye_c_r
+    
+    # Blue Eye view
+    eye_b = cv2.resize(
+        (pixels_b.reshape(8, 8) * 255).astype(np.uint8),
+        (50, 50), interpolation=cv2.INTER_NEAREST,
+    )
+    eye_c_b = cv2.cvtColor(eye_b, cv2.COLOR_GRAY2BGR)
+    eye_c_b[:,:,1] = 0 # zero out green
+    eye_c_b[:,:,2] = 0 # zero out red
+    cv2.rectangle(eye_c_b, (0, 0), (49, 49), (255, 0, 0), 1)
+    dash[5:55, 445:495] = eye_c_b
 
     # ── DOPAMINE BAR ──
     cv2.putText(dash, "Dopamine:", (10, 52),
@@ -901,7 +927,7 @@ def run_rl():
             img = np.array(sct.grab(MONITOR))
 
             # ── 2. VISION ──
-            pixels, gray = get_pixel_grid(img)
+            pixels_r, pixels_b, gray = get_pixel_grids(img)
             opp, threat = detect_opponent(gray, MONITOR["width"], MONITOR["height"])
             motion = detect_motion(gray, prev_gray)
             prev_gray = gray.copy()
@@ -909,7 +935,7 @@ def run_rl():
             # ── 3. BRAIN STEP ──
             # Feed current dopamine level back into DANs
             pop_rates, brain_state, fired, arousal_val, avg_act = run_brain(
-                opp, threat, pixels, motion, learner.dopamine
+                opp, threat, pixels_r, pixels_b, motion, learner.dopamine
             )
 
             # ── 4. ACTION DECISION ──
@@ -954,7 +980,7 @@ def run_rl():
 
             # ── 8. VISUALIZE ──
             panel = build_panel(brain_state, actions, fired, pop_rates,
-                                arousal_val, avg_act, pixels, learner, reward_sys)
+                                arousal_val, avg_act, pixels_r, pixels_b, learner, reward_sys)
             cv2.imshow("Fly Brain RL", panel)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):

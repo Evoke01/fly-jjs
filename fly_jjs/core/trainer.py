@@ -76,11 +76,12 @@ num_dns = len(dns)
 print(f"[Brain] {num_dns} descending neurons")
 
 vis = brain.cells(["LC4", "LPLC2", "LC16"])
-if len(vis) < 64:
+if len(vis) < 128:
     vis = brain.cells(["KenyonCell"])
-    if len(vis) < 64:
-        vis = dns[:64]
-retina = vis[:64]
+    if len(vis) < 128:
+        vis = dns[:128]
+retina_r = vis[:64]
+retina_b = vis[64:128]
 
 # ── Window detection ──
 print("\n[System] Searching for Roblox window...")
@@ -156,10 +157,20 @@ except FileNotFoundError:
 LEARNING_RATE = 0.005  # Higher than RL because supervised is more stable
 
 
-def get_pixel_grid(img):
-    gray = cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
-    small = cv2.resize(gray, (8, 8), interpolation=cv2.INTER_AREA)
-    return small.flatten() / 255.0, gray
+def get_pixel_grids(img):
+    # Split channels (img is BGR or BGRA)
+    b = img[:, :, 0].astype(float)
+    g = img[:, :, 1].astype(float)
+    r = img[:, :, 2].astype(float)
+    
+    # Calculate "red-ness" and "blue-ness" by subtracting the other channels
+    redness = np.clip(r - (g + b) * 0.5, 0, 255).astype(np.uint8)
+    blueness = np.clip(b - (r + g) * 0.5, 0, 255).astype(np.uint8)
+    
+    red_small = cv2.resize(redness, (8, 8), interpolation=cv2.INTER_AREA)
+    blue_small = cv2.resize(blueness, (8, 8), interpolation=cv2.INTER_AREA)
+    
+    return red_small.flatten() / 255.0, blue_small.flatten() / 255.0, cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
 
 
 def detect_opponent(gray, width, height):
@@ -207,13 +218,14 @@ def run_trainer():
         img = np.array(sct.grab(MONITOR))
 
         # ── 2. Vision ──
-        pixels, gray = get_pixel_grid(img)
+        pixels_r, pixels_b, gray = get_pixel_grids(img)
         opp, threat = detect_opponent(gray, MONITOR["width"], MONITOR["height"])
 
         # ── 3. Brain step (same injections as fly_rl.py) ──
         injections = fd.inject(opp=opp, threat=threat)
         for i in range(64):
-            injections.append((retina[i], pixels[i] * 1.5))
+            injections.append((retina_r[i], pixels_r[i] * 1.5))
+            injections.append((retina_b[i], pixels_b[i] * 1.5))
 
         fired_neurons = brain.step(inject=injections)
         fired_set = set(fired_neurons)
@@ -269,6 +281,28 @@ def run_trainer():
 
         cv2.putText(dash, "TRAINING MODE — FLY IS WATCHING YOU",
                     (10, 25), cv2.FONT_HERSHEY_DUPLEX, 0.55, (0, 255, 100), 2)
+                    
+        # Red Eye view (what the 8x8 retina sees)
+        eye_r = cv2.resize(
+            (pixels_r.reshape(8, 8) * 255).astype(np.uint8),
+            (50, 50), interpolation=cv2.INTER_NEAREST,
+        )
+        eye_c_r = cv2.cvtColor(eye_r, cv2.COLOR_GRAY2BGR)
+        eye_c_r[:,:,0] = 0 # zero out blue
+        eye_c_r[:,:,1] = 0 # zero out green
+        cv2.rectangle(eye_c_r, (0, 0), (49, 49), (0, 0, 255), 1)
+        dash[5:55, 385:435] = eye_c_r
+        
+        # Blue Eye view
+        eye_b = cv2.resize(
+            (pixels_b.reshape(8, 8) * 255).astype(np.uint8),
+            (50, 50), interpolation=cv2.INTER_NEAREST,
+        )
+        eye_c_b = cv2.cvtColor(eye_b, cv2.COLOR_GRAY2BGR)
+        eye_c_b[:,:,1] = 0 # zero out green
+        eye_c_b[:,:,2] = 0 # zero out red
+        cv2.rectangle(eye_c_b, (0, 0), (49, 49), (255, 0, 0), 1)
+        dash[5:55, 445:495] = eye_c_b
 
         # Show what keys the user is pressing
         active_actions = [ACTION_NAMES[i] for i in range(NUM_ACTIONS)
