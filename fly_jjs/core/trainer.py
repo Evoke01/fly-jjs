@@ -227,6 +227,11 @@ def run_trainer():
         for i in range(64):
             injections.append((retina_r[i], pixels_r[i] * 5.0))
             injections.append((retina_b[i], pixels_b[i] * 5.0))
+            
+        color_intensity = np.sum(pixels_r) + np.sum(pixels_b)
+        if color_intensity > 2.0:
+            for dn in dns[0:25]:
+                injections.append((dn, 1.5))
 
         fired_neurons = brain.step(inject=injections)
         fired_set = set(fired_neurons)

@@ -616,6 +616,14 @@ def run_brain(opp, threat, pixels_r, pixels_b, motion, dopamine_level):
         for dn in dns[:20]:
             injections.append((dn, arousal * 0.5))
 
+    # MOTH-TO-FLAME INSTINCT (For Voting Video)
+    # The fly naturally wants to walk forward when it sees bright red or blue
+    color_intensity = np.sum(pixels_r) + np.sum(pixels_b)
+    if color_intensity > 2.0:
+        # Inject excitation directly into the forward descending neurons (fwd_pop)
+        for dn in dns[0:25]:
+            injections.append((dn, 1.5))
+
     # ── DOPAMINE INJECTION INTO REAL DAN NEURONS ──
     # This is the core RL mechanism: reward/punishment signals
     # flow through the fly's actual dopaminergic circuitry.
