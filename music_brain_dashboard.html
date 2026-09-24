@@ -8,28 +8,31 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-void: #000000;
-            --bg-deep: #020408;
-            --bg-card: #0a0e18;
-            --bg-card-glow: #0d1220;
-            --border: #1a2035;
-            --border-glow: #2a3a5a;
-            --text: #c0c8d8;
-            --text-dim: #5a6a80;
-            --text-bright: #ffffff;
+            /* Minimalist Dark Theme (Zinc-inspired) */
+            --bg-void: #09090b;
+            --bg-deep: #09090b;
+            --bg-card: #18181b;
+            --bg-card-glow: #18181b;
+            --border: #27272a;
+            --border-glow: #3f3f46;
+            --text: #a1a1aa;
+            --text-dim: #71717a;
+            --text-bright: #f4f4f5;
 
-            --neon-cyan: #00f5ff;
-            --neon-magenta: #ff00aa;
-            --neon-orange: #ff6a00;
-            --neon-green: #00ff88;
-            --neon-red: #ff2244;
-            --neon-purple: #aa44ff;
-            --neon-yellow: #ffdd00;
-            --neon-blue: #4488ff;
+            /* Muted accent colors instead of bright neons */
+            --neon-cyan: #38bdf8;
+            --neon-magenta: #e879f9;
+            --neon-orange: #fb923c;
+            --neon-green: #34d399;
+            --neon-red: #f87171;
+            --neon-purple: #c084fc;
+            --neon-yellow: #facc15;
+            --neon-blue: #60a5fa;
 
-            --glow-cyan: 0 0 20px #00f5ff40, 0 0 40px #00f5ff20;
-            --glow-red: 0 0 20px #ff224440, 0 0 40px #ff224420;
-            --glow-green: 0 0 20px #00ff8840, 0 0 40px #00ff8820;
+            /* Subdued or removed glows */
+            --glow-cyan: none;
+            --glow-red: none;
+            --glow-green: none;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -39,45 +42,37 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-void);
             color: var(--text);
-            line-height: 1.5;
+            line-height: 1.6;
             overflow-x: hidden;
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
         }
 
         /* ── BACKGROUND EFFECTS ── */
         .bg-grid {
             position: fixed; inset: 0; z-index: 0; pointer-events: none;
-            background-image:
-                radial-gradient(circle at 50% 50%, #00f5ff05 0%, transparent 50%),
-                linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
-            background-size: 100% 100%, 40px 40px, 40px 40px;
+            /* Removed heavy grid, just a subtle radial gradient */
+            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 0%, transparent 60%);
         }
 
         .bg-pulse {
             position: fixed; inset: 0; z-index: 0; pointer-events: none;
             opacity: 0;
-            transition: opacity 0.3s;
+            transition: opacity 0.5s ease;
         }
 
         .bg-pulse.active {
             opacity: 1;
-            animation: pulse-bg 0.5s ease-out;
-        }
-
-        @keyframes pulse-bg {
-            0% { background: radial-gradient(circle at 50% 50%, rgba(255,0,170,0.15), transparent 60%); }
-            100% { background: radial-gradient(circle at 50% 50%, transparent, transparent); }
         }
 
         /* ── HEADER ── */
         .header {
             position: relative; z-index: 10;
-            padding: 20px 30px;
+            padding: 24px 40px;
             display: flex; align-items: center; justify-content: space-between;
             border-bottom: 1px solid var(--border);
-            background: linear-gradient(180deg, #0a0e18cc, transparent);
-            backdrop-filter: blur(10px);
+            background: rgba(9, 9, 11, 0.8);
+            backdrop-filter: blur(12px);
         }
 
         .header-left {
@@ -85,18 +80,17 @@
         }
 
         .logo {
-            font-size: 28px; font-weight: 900;
-            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            letter-spacing: -1px;
+            font-size: 20px; font-weight: 600;
+            color: var(--text-bright);
+            letter-spacing: -0.5px;
         }
 
         .experiment-tag {
-            background: linear-gradient(135deg, #ff00aa20, #ff6a0020);
-            border: 1px solid #ff00aa40;
-            padding: 4px 14px; border-radius: 20px;
-            font-size: 11px; font-weight: 600; text-transform: uppercase;
-            color: var(--neon-magenta); letter-spacing: 1.5px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 6px 12px; border-radius: 6px;
+            font-size: 12px; font-weight: 500;
+            color: var(--text-dim);
         }
 
         .header-right {
@@ -124,9 +118,8 @@
 
         .timer {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 18px; font-weight: 600;
-            color: var(--neon-cyan);
-            text-shadow: var(--glow-cyan);
+            font-size: 16px; font-weight: 500;
+            color: var(--text-bright);
         }
 
         /* ── MAIN GRID ── */
@@ -145,34 +138,23 @@
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 20px;
+            border-radius: 12px;
+            padding: 24px;
             position: relative;
-            overflow: hidden;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute; top: 0; left: 0; right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
-            opacity: 0.5;
-        }
-
-        .card:hover {
-            border-color: var(--border-glow);
+            display: flex;
+            flex-direction: column;
         }
 
         .card-title {
-            font-size: 11px; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 2px; color: var(--text-dim);
-            margin-bottom: 16px;
+            font-size: 12px; font-weight: 500;
+            color: var(--text-bright);
+            margin-bottom: 20px;
             display: flex; align-items: center; gap: 8px;
         }
 
         .card-title .icon {
-            font-size: 14px;
+            color: var(--text-dim);
+            display: flex;
         }
 
         /* ── BRAIN VISUALIZATION (full width) ── */
@@ -206,23 +188,18 @@
         }
 
         .stat-bar-bg {
-            flex: 1; height: 14px; border-radius: 7px;
-            background: #0a0e18; position: relative;
-            overflow: hidden;
+            flex: 1; height: 8px; border-radius: 4px;
+            background: var(--bg-void); position: relative;
+            overflow: hidden; border: 1px solid var(--border);
         }
 
         .stat-bar-fill {
-            height: 100%; border-radius: 7px;
+            height: 100%; border-radius: 4px;
             transition: width 0.2s ease-out;
             position: relative;
         }
 
-        .stat-bar-fill::after {
-            content: '';
-            position: absolute; inset: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2));
-            border-radius: 7px;
-        }
+
 
         .stat-value {
             font-family: 'JetBrains Mono', monospace;
@@ -287,52 +264,49 @@
         .phase-banner {
             grid-column: 1 / -1;
             text-align: center;
-            padding: 16px;
-            font-size: 14px; font-weight: 800;
-            text-transform: uppercase; letter-spacing: 4px;
-            border-radius: 12px;
+            padding: 12px;
+            font-size: 13px; font-weight: 500;
+            border-radius: 8px;
             transition: all 0.5s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .phase-BASELINE {
-            background: linear-gradient(135deg, #00ff8808, #00ff8803);
-            border: 1px solid #00ff8830;
+            background: rgba(52, 211, 153, 0.1);
+            border: 1px solid rgba(52, 211, 153, 0.2);
             color: var(--neon-green);
-            text-shadow: var(--glow-green);
         }
 
         .phase-STIMULATED {
-            background: linear-gradient(135deg, #00f5ff08, #4488ff03);
-            border: 1px solid #00f5ff30;
-            color: var(--neon-cyan);
-            text-shadow: var(--glow-cyan);
+            background: rgba(96, 165, 250, 0.1);
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            color: var(--neon-blue);
         }
 
         .phase-STRESSED {
-            background: linear-gradient(135deg, #ffdd0008, #ff6a0003);
-            border: 1px solid #ffdd0030;
+            background: rgba(250, 204, 21, 0.1);
+            border: 1px solid rgba(250, 204, 21, 0.2);
             color: var(--neon-yellow);
         }
 
         .phase-DAMAGED {
-            background: linear-gradient(135deg, #ff660008, #ff224403);
-            border: 1px solid #ff660030;
+            background: rgba(251, 146, 60, 0.1);
+            border: 1px solid rgba(251, 146, 60, 0.2);
             color: var(--neon-orange);
-            animation: damage-pulse 1s infinite;
         }
 
         .phase-CRITICAL {
-            background: linear-gradient(135deg, #ff224408, #ff00aa03);
-            border: 1px solid #ff224450;
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.2);
             color: var(--neon-red);
-            text-shadow: var(--glow-red);
-            animation: critical-pulse 0.5s infinite;
         }
 
         .phase-COOLDOWN {
-            background: linear-gradient(135deg, #4488ff08, #aa44ff03);
-            border: 1px solid #4488ff30;
-            color: var(--neon-blue);
+            background: rgba(167, 139, 250, 0.1);
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            color: var(--neon-purple);
         }
 
         @keyframes damage-pulse {
@@ -556,7 +530,7 @@
                     <div class="stat-row">
                         <span class="stat-label">Firing</span>
                         <div class="stat-bar-bg">
-                            <div class="stat-bar-fill" id="firingBar" style="width: 0%; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue));"></div>
+                            <div class="stat-bar-fill" id="firingBar" style="width: 0%; background: var(--neon-cyan);"></div>
                         </div>
                         <span class="stat-value" id="firingValue" style="color: var(--neon-cyan);">0%</span>
                     </div>
@@ -564,7 +538,7 @@
                     <div class="stat-row">
                         <span class="stat-label">Arousal</span>
                         <div class="stat-bar-bg">
-                            <div class="stat-bar-fill" id="arousalBar" style="width: 0%; background: linear-gradient(90deg, var(--neon-orange), var(--neon-red));"></div>
+                            <div class="stat-bar-fill" id="arousalBar" style="width: 0%; background: var(--neon-orange);"></div>
                         </div>
                         <span class="stat-value" id="arousalValue" style="color: var(--neon-orange);">0%</span>
                     </div>
@@ -572,7 +546,7 @@
                     <div class="stat-row">
                         <span class="stat-label">Dopamine</span>
                         <div class="stat-bar-bg">
-                            <div class="stat-bar-fill" id="dopamineBar" style="width: 50%; background: linear-gradient(90deg, var(--neon-red), var(--neon-green));"></div>
+                            <div class="stat-bar-fill" id="dopamineBar" style="width: 50%; background: var(--neon-green);"></div>
                         </div>
                         <span class="stat-value" id="dopamineValue" style="color: var(--neon-green);">0.00</span>
                     </div>
@@ -580,7 +554,7 @@
                     <div class="stat-row">
                         <span class="stat-label">Stress</span>
                         <div class="stat-bar-bg">
-                            <div class="stat-bar-fill" id="stressBar" style="width: 0%; background: linear-gradient(90deg, var(--neon-yellow), var(--neon-red));"></div>
+                            <div class="stat-bar-fill" id="stressBar" style="width: 0%; background: var(--neon-yellow);"></div>
                         </div>
                         <span class="stat-value" id="stressValue" style="color: var(--neon-yellow);">0%</span>
                     </div>
@@ -588,7 +562,7 @@
                     <div class="stat-row">
                         <span class="stat-label">Coherence</span>
                         <div class="stat-bar-bg">
-                            <div class="stat-bar-fill" id="coherenceBar" style="width: 100%; background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan));"></div>
+                            <div class="stat-bar-fill" id="coherenceBar" style="width: 100%; background: var(--neon-purple);"></div>
                         </div>
                         <span class="stat-value" id="coherenceValue" style="color: var(--neon-green);">100%</span>
                     </div>
@@ -596,7 +570,7 @@
                     <div class="stat-row">
                         <span class="stat-label">Dead</span>
                         <div class="stat-bar-bg">
-                            <div class="stat-bar-fill" id="deadBar" style="width: 0%; background: linear-gradient(90deg, #333, var(--neon-red));"></div>
+                            <div class="stat-bar-fill" id="deadBar" style="width: 0%; background: var(--neon-red);"></div>
                         </div>
                         <span class="stat-value" id="deadValue" style="color: var(--neon-red);">0</span>
                     </div>
@@ -653,7 +627,7 @@
         <div class="card meme-card" id="memeCard">
             <div class="card-title"><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></span> Fly Emotional State</div>
             <div class="meme-emoji" id="memeEmoji" style="display: none;"></div>
-            <img class="meme-img" id="memeImg" src="/memes/angry_bird.png" style="display: block; width: 100%; max-width: 250px; margin: 20px auto; border-radius: 12px; box-shadow: 0 0 15px rgba(0, 255, 136, 0.3); transition: all 0.3s ease;" alt="Fly Emotion">
+            <img class="meme-img" id="memeImg" src="/memes/angry_bird.png" style="display: block; width: 100%; max-width: 250px; margin: 20px auto; border-radius: 12px; transition: all 0.3s ease;" alt="Fly Emotion">
             <div class="meme-label" id="memeLabel" style="color: var(--neon-cyan);">WAITING</div>
             <div class="meme-sublabel" id="memeSublabel">The fly hasn't heard anything yet...</div>
         </div>
@@ -691,6 +665,24 @@
         let lastPhase = '';
         let pollInterval = null;
         let lastStep = -1;
+
+        // Pre-compute jittered grid positions for organic network look
+        const NEURON_POS = [];
+        const cols = 25;
+        const rows = 20;
+        const cellW = 560 / cols;
+        const cellH = 320 / rows;
+        for (let i = 0; i < 500; i++) {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            // Jitter by up to 40% of cell width/height
+            const jitterX = (Math.sin(i * 13.5) * 0.4) * cellW;
+            const jitterY = (Math.cos(i * 4.2) * 0.4) * cellH;
+            NEURON_POS.push({
+                x: col * cellW + cellW / 2 + jitterX,
+                y: row * cellH + cellH / 2 + jitterY
+            });
+        }
 
         async function pollBrainData() {
             try {
@@ -863,7 +855,7 @@
         }
 
         // =====================================================
-        // Brain Canvas — Neural Activity Heatmap
+        // Brain Canvas — Minimalist Neural Network
         // =====================================================
         function updateBrainCanvas(brainState, health) {
             const canvas = document.getElementById('brainCanvas');
@@ -875,111 +867,86 @@
                 if (brainState[i] === 1) {
                     brainHeatmap[i] = 1.0;
                 } else {
-                    brainHeatmap[i] *= 0.92;
+                    brainHeatmap[i] *= 0.85; // Faster decay for snappier look
                 }
             }
 
-            // Clear
-            ctx.fillStyle = '#000';
+            // Clear with card background for seamless look
+            ctx.fillStyle = 'var(--bg-card)';
             ctx.fillRect(0, 0, w, h);
 
-            // Draw neurons as a grid of circles
-            const cols = 25;
-            const rows = 20;
-            const cellW = w / cols;
-            const cellH = h / rows;
-            const dead = health ? (health.dead_pct || 0) : 0;
-
-            for (let i = 0; i < Math.min(cols * rows, brainHeatmap.length); i++) {
-                const col = i % cols;
-                const row = Math.floor(i / cols);
-                const cx = col * cellW + cellW / 2;
-                const cy = row * cellH + cellH / 2;
-                const heat = brainHeatmap[i];
-                const radius = 4 + heat * 6;
-
-                // Color based on activity
-                let r, g, b;
-                if (i < brainHeatmap.length && health && health.dead_pct > 0) {
-                    // Check if this neuron might be dead (approximate)
-                    const deadThreshold = i / brainHeatmap.length;
-                    if (deadThreshold < (health.dead_pct || 0) * 2 && heat < 0.01) {
-                        r = 40; g = 10; b = 10; // Dead neuron = dark red
-                    } else {
-                        // Inferno-like colormap
-                        r = Math.floor(heat * 255);
-                        g = Math.floor(heat * heat * 180);
-                        b = Math.floor((1 - heat) * 60 + heat * 200);
+            // Draw connecting lines between highly active nearby neurons
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 500; i++) {
+                if (brainHeatmap[i] > 0.4 && NEURON_POS[i]) {
+                    // Find neighbors to connect
+                    for (let j = i + 1; j < Math.min(i + 30, 500); j++) {
+                        if (brainHeatmap[j] > 0.4 && NEURON_POS[j]) {
+                            const dx = NEURON_POS[i].x - NEURON_POS[j].x;
+                            const dy = NEURON_POS[i].y - NEURON_POS[j].y;
+                            const dist = Math.sqrt(dx*dx + dy*dy);
+                            
+                            if (dist < 60) {
+                                const opacity = Math.min(brainHeatmap[i], brainHeatmap[j]) * 0.5;
+                                ctx.strokeStyle = `rgba(56, 189, 248, ${opacity})`; // neon-cyan
+                                ctx.beginPath();
+                                ctx.moveTo(NEURON_POS[i].x, NEURON_POS[i].y);
+                                ctx.lineTo(NEURON_POS[j].x, NEURON_POS[j].y);
+                                ctx.stroke();
+                            }
+                        }
                     }
-                } else {
-                    // Inferno colormap approximation
-                    if (heat < 0.25) {
-                        r = Math.floor(heat * 4 * 80);
-                        g = 0;
-                        b = Math.floor(heat * 4 * 120);
-                    } else if (heat < 0.5) {
-                        const t = (heat - 0.25) * 4;
-                        r = Math.floor(80 + t * 175);
-                        g = Math.floor(t * 50);
-                        b = Math.floor(120 - t * 80);
-                    } else if (heat < 0.75) {
-                        const t = (heat - 0.5) * 4;
-                        r = 255;
-                        g = Math.floor(50 + t * 150);
-                        b = Math.floor(40 - t * 40);
-                    } else {
-                        const t = (heat - 0.75) * 4;
-                        r = 255;
-                        g = Math.floor(200 + t * 55);
-                        b = Math.floor(t * 100);
-                    }
-                }
-
-                // Glow effect for active neurons
-                if (heat > 0.5) {
-                    ctx.beginPath();
-                    const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 2);
-                    gradient.addColorStop(0, `rgba(${r},${g},${b},0.4)`);
-                    gradient.addColorStop(1, 'transparent');
-                    ctx.fillStyle = gradient;
-                    ctx.arc(cx, cy, radius * 2, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-
-                // Neuron dot
-                ctx.beginPath();
-                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgb(${r},${g},${b})`;
-                ctx.fill();
-
-                // Bright center for highly active neurons
-                if (heat > 0.8) {
-                    ctx.beginPath();
-                    ctx.arc(cx, cy, 2, 0, Math.PI * 2);
-                    ctx.fillStyle = '#fff';
-                    ctx.fill();
                 }
             }
 
-            // Draw brain outline (fly brain shape — mushroom body-like)
-            ctx.strokeStyle = '#1a2a4020';
+            const dead = health ? (health.dead_pct || 0) : 0;
+
+            // Draw nodes
+            for (let i = 0; i < 500; i++) {
+                if (!NEURON_POS[i]) continue;
+                const { x: cx, y: cy } = NEURON_POS[i];
+                const heat = brainHeatmap[i];
+                const radius = 2 + heat * 3;
+
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+
+                const deadThreshold = i / 500;
+                if (deadThreshold < dead * 2 && heat < 0.01) {
+                    // Dead node
+                    ctx.fillStyle = 'rgba(248, 113, 113, 0.4)'; // neon-red muted
+                } else if (heat > 0.1) {
+                    // Active node (monochrome bright -> cyan)
+                    const r = Math.floor(56 + heat * (255 - 56));
+                    const g = Math.floor(189 + heat * (255 - 189));
+                    const b = Math.floor(248 + heat * (255 - 248));
+                    ctx.fillStyle = `rgba(${r},${g},${b}, 0.9)`;
+                } else {
+                    // Idle node
+                    ctx.fillStyle = 'rgba(161, 161, 170, 0.1)'; // faint zinc-400
+                }
+                ctx.fill();
+            }
+
+            // Draw subtle brain outline
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.ellipse(w / 2, h / 2, w * 0.45, h * 0.42, 0, 0, Math.PI * 2);
             ctx.stroke();
 
             // Labels
-            ctx.fillStyle = '#ffffff30';
-            ctx.font = '9px JetBrains Mono';
-            ctx.fillText('AUDITORY', 10, 14);
-            ctx.fillText('MOTOR', w - 55, 14);
-            ctx.fillText('MUSHROOM BODY', w / 2 - 45, h - 6);
+            ctx.fillStyle = 'var(--text-dim)';
+            ctx.font = '10px JetBrains Mono';
+            ctx.fillText('AUDITORY', 14, 18);
+            ctx.fillText('MOTOR', w - 50, 18);
+            ctx.fillText('MUSHROOM BODY', w / 2 - 45, h - 10);
 
             // Fired count overlay
             if (brainData) {
-                ctx.fillStyle = '#00f5ff80';
-                ctx.font = '11px JetBrains Mono';
-                ctx.fillText(`${brainData.fired_count || 0}/${brainData.total_neurons || 0} active`, 10, h - 6);
+                ctx.fillStyle = 'var(--neon-cyan)';
+                ctx.font = '12px JetBrains Mono';
+                ctx.fillText(`${brainData.fired_count || 0}/${brainData.total_neurons || 0} active`, 14, h - 10);
             }
         }
 
@@ -991,11 +958,11 @@
             const ctx = canvas.getContext('2d');
             const w = canvas.width, h = canvas.height;
 
-            ctx.fillStyle = '#000';
+            ctx.fillStyle = 'var(--bg-card)';
             ctx.fillRect(0, 0, w, h);
 
             const bands = ['sub_bass', 'bass', 'low_mid', 'mid', 'high', 'ultra_high'];
-            const colors = ['#ff00aa', '#ff6a00', '#ffdd00', '#00ff88', '#00f5ff', '#aa44ff'];
+            const colors = ['#e879f9', '#fb923c', '#facc15', '#34d399', '#38bdf8', '#c084fc'];
             const barWidth = w / bands.length - 8;
 
             bands.forEach((band, i) => {
@@ -1004,14 +971,8 @@
                 const x = i * (barWidth + 8) + 4;
                 const y = h - barH - 10;
 
-                // Gradient bar
-                const grad = ctx.createLinearGradient(x, h - 10, x, y);
-                grad.addColorStop(0, colors[i] + '80');
-                grad.addColorStop(0.5, colors[i]);
-                grad.addColorStop(1, colors[i] + '40');
-                ctx.fillStyle = grad;
-
-                // Rounded rect
+                // Flat rounded bar
+                ctx.fillStyle = colors[i];
                 const radius = 4;
                 ctx.beginPath();
                 ctx.moveTo(x + radius, y);
@@ -1023,20 +984,11 @@
                 ctx.quadraticCurveTo(x, y, x + radius, y);
                 ctx.fill();
 
-                // Glow effect
-                if (val > 0.5) {
-                    ctx.shadowColor = colors[i];
-                    ctx.shadowBlur = 15;
-                    ctx.fillStyle = colors[i] + '20';
-                    ctx.fillRect(x - 5, y - 5, barWidth + 10, barH + 10);
-                    ctx.shadowBlur = 0;
-                }
-
                 // Value label
-                ctx.fillStyle = '#ffffff80';
-                ctx.font = '9px JetBrains Mono';
+                ctx.fillStyle = 'var(--text-dim)';
+                ctx.font = '10px JetBrains Mono';
                 ctx.textAlign = 'center';
-                ctx.fillText(`${(val * 100).toFixed(0)}%`, x + barWidth / 2, y - 4);
+                ctx.fillText(`${(val * 100).toFixed(0)}%`, x + barWidth / 2, y - 6);
             });
         }
 
@@ -1048,7 +1000,7 @@
             const ctx = canvas.getContext('2d');
             const w = canvas.width, h = canvas.height;
 
-            ctx.fillStyle = '#000';
+            ctx.fillStyle = 'var(--bg-void)';
             ctx.fillRect(0, 0, w, h);
 
             const n = fatigueMap.length;
@@ -1060,24 +1012,20 @@
                 const x = i * pixelW;
 
                 if (isDead) {
-                    ctx.fillStyle = '#ff2244';
-                } else if (fatigue > 0.7) {
-                    ctx.fillStyle = `rgb(255, ${Math.floor((1 - fatigue) * 200)}, 0)`;
-                } else if (fatigue > 0.3) {
-                    ctx.fillStyle = `rgb(${Math.floor(fatigue * 2 * 255)}, ${Math.floor(fatigue * 255)}, 0)`;
+                    ctx.fillStyle = 'var(--neon-red)';
                 } else {
-                    ctx.fillStyle = `rgb(0, ${Math.floor(fatigue * 3 * 100)}, ${Math.floor(fatigue * 3 * 60)})`;
+                    ctx.fillStyle = `rgba(248, 113, 113, ${fatigue * 0.8})`; // Opacity-based red
                 }
 
                 ctx.fillRect(x, 0, Math.max(pixelW, 1), h);
             }
 
             // Legend
-            ctx.fillStyle = '#ffffff40';
-            ctx.font = '8px JetBrains Mono';
-            ctx.fillText('Healthy', 4, 10);
-            ctx.fillStyle = '#ff224480';
-            ctx.fillText('Dead', w - 30, 10);
+            ctx.fillStyle = 'var(--text-dim)';
+            ctx.font = '10px JetBrains Mono';
+            ctx.fillText('Healthy', 4, 12);
+            ctx.fillStyle = 'var(--neon-red)';
+            ctx.fillText('Dead', w - 32, 12);
         }
 
         // =====================================================
@@ -1088,12 +1036,12 @@
             const ctx = canvas.getContext('2d');
             const w = canvas.width, h = canvas.height;
 
-            ctx.fillStyle = '#000';
+            ctx.fillStyle = 'var(--bg-void)';
             ctx.fillRect(0, 0, w, h);
 
             // Zero line
             const midY = h / 2;
-            ctx.strokeStyle = '#333';
+            ctx.strokeStyle = 'var(--border)';
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(0, midY);
@@ -1102,10 +1050,10 @@
 
             if (dopamineHistory.length < 2) return;
 
-            // Draw dopamine line
+            // Draw dopamine line (minimalist thin green)
             ctx.beginPath();
-            ctx.strokeStyle = '#00ff88';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'var(--neon-green)';
+            ctx.lineWidth = 1.5;
             for (let i = 0; i < dopamineHistory.length; i++) {
                 const x = (i / dopamineHistory.length) * w;
                 const val = dopamineHistory[i];
@@ -1115,17 +1063,10 @@
             }
             ctx.stroke();
 
-            // Fill under curve
-            ctx.lineTo(w, midY);
-            ctx.lineTo(0, midY);
-            ctx.closePath();
-            ctx.fillStyle = '#00ff8810';
-            ctx.fill();
-
             // Labels
-            ctx.fillStyle = '#ffffff30';
-            ctx.font = '8px JetBrains Mono';
-            ctx.fillText('+2.0', 4, 10);
+            ctx.fillStyle = 'var(--text-dim)';
+            ctx.font = '10px JetBrains Mono';
+            ctx.fillText('+2.0', 4, 12);
             ctx.fillText('-2.0', 4, h - 4);
         }
 
@@ -1240,17 +1181,13 @@
             // Update card glow based on severity
             const card = document.getElementById('memeCard');
             if (['skull', 'explosion', 'screaming'].includes(memeId)) {
-                card.style.borderColor = '#ff224450';
-                card.style.boxShadow = '0 0 30px #ff224420';
+                card.style.borderColor = 'var(--neon-red)';
             } else if (['crying', 'sweating', 'pain'].includes(memeId)) {
-                card.style.borderColor = '#ff6a0040';
-                card.style.boxShadow = '0 0 20px #ff6a0015';
+                card.style.borderColor = 'var(--neon-orange)';
             } else if (['vibing', 'hype'].includes(memeId)) {
-                card.style.borderColor = '#00ff8840';
-                card.style.boxShadow = '0 0 20px #00ff8815';
+                card.style.borderColor = 'var(--neon-green)';
             } else {
                 card.style.borderColor = 'var(--border)';
-                card.style.boxShadow = 'none';
             }
         }
 
