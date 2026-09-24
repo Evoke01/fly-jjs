@@ -548,12 +548,19 @@ class NeuralHealthTracker:
 
 
 # ── MAIN EXPERIMENT LOOP ──────────────────────────────
-def run_music_experiment():
-    """Main experiment: play AIZO to the fly brain and observe."""
+def run_music_experiment(custom_url=None):
+    """Main experiment: play AIZO (or custom track) to the fly brain and observe."""
     import webbrowser
+    import hashlib
+
+    global YOUTUBE_URL, AUDIO_FILE
+    if custom_url:
+        YOUTUBE_URL = custom_url
+        url_hash = hashlib.md5(custom_url.encode()).hexdigest()[:8]
+        AUDIO_FILE = os.path.join(AUDIO_DIR, f"experiment_{url_hash}.wav")
 
     print("\n" + "=" * 60)
-    print("  EXPERIMENT: FLY BRAIN × AIZO MUSIC")
+    print("  EXPERIMENT: FLY BRAIN × MUSIC")
     print("=" * 60)
 
     # Step 1: Download audio
@@ -595,7 +602,7 @@ def run_music_experiment():
     # Experiment data log
     experiment_log = {
         "start_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "music": "AIZO",
+        "music": "Custom" if custom_url else "AIZO",
         "youtube_url": YOUTUBE_URL,
         "tempo": audio_data["tempo"],
         "duration": audio_data["duration"],

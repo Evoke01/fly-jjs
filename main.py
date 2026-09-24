@@ -36,8 +36,8 @@ def print_menu():
     print("  \x1b[38;5;111m[ 4 ] 🔄  Check for Updates\x1b[0m")
     print("        \x1b[38;5;244mPull the latest code and features from GitHub.\x1b[0m\n")
     
-    print("  \x1b[38;5;213m[ 5 ] 🎵  Music Experiment (AIZO)\x1b[0m")
-    print("        \x1b[38;5;244mMake the fly listen to AIZO and watch its brain melt.\x1b[0m\n")
+    print("  \x1b[38;5;213m[ 5 ] 🎵  Music Experiment\x1b[0m")
+    print("        \x1b[38;5;244mMake the fly listen to custom music (or AIZO) and watch its brain.\x1b[0m\n")
     
     print("  \x1b[38;5;240m[ 6 ] ❌  Exit System\x1b[0m\n")
     
@@ -104,8 +104,9 @@ def main():
         elif choice == '5':
             clear_screen()
             print("\x1b[38;5;213m  [+] Initializing Music Experiment...\x1b[0m")
+            yt_url = input("  Enter a YouTube URL (or press Enter for default AIZO): ").strip()
             from fly_jjs.core.music_experiment import run_music_experiment
-            run_music_experiment()
+            run_music_experiment(custom_url=yt_url if yt_url else None)
             
         elif choice == '6':
             clear_screen()
