@@ -678,9 +678,8 @@
 
     <script>
         // =====================================================
-        // WebSocket Connection
+        // HTTP Polling Connection (replaces WebSocket)
         // =====================================================
-        let ws = null;
         let connected = false;
         let brainData = null;
         let dopamineHistory = [];
@@ -689,46 +688,64 @@
         let lastMeme = '';
         let brainHeatmap = new Float32Array(500);
         let lastPhase = '';
+        let pollInterval = null;
+        let lastStep = -1;
 
-        function connectWS() {
-            const wsUrl = `ws://${window.location.hostname}:${window.location.port}/ws`;
-            ws = new WebSocket(wsUrl);
+        async function pollBrainData() {
+            try {
+                const response = await fetch('/api/brain');
+                if (!response.ok) return;
 
-            ws.onopen = () => {
-                connected = true;
-                document.getElementById('waitingOverlay').classList.add('hidden');
-                document.getElementById('statusText').textContent = 'LIVE';
-                document.getElementById('statusBadge').style.borderColor = '#00ff8850';
-                addDamageEntry('info', '🔗 Connected to fly brain');
-            };
+                const data = await response.json();
 
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
+                // Check if we have data
+                if (!data || !data.type) return;
+
+                // First successful fetch — we're connected!
+                if (!connected) {
+                    connected = true;
+                    document.getElementById('waitingOverlay').classList.add('hidden');
+                    document.getElementById('statusText').textContent = 'LIVE';
+                    document.getElementById('statusBadge').style.borderColor = '#00ff8850';
+                    document.getElementById('statusBadge').style.background = '#00ff8810';
+                    document.querySelector('.status-dot').style.background = 'var(--neon-green)';
+                    addDamageEntry('info', '🔗 Connected to fly brain');
+                }
+
+                // Only update if new data (avoid reprocessing same frame)
+                if (data.step !== undefined && data.step !== lastStep) {
+                    lastStep = data.step;
+
                     if (data.type === 'brain_update') {
                         brainData = data;
                         updateDashboard(data);
                     } else if (data.type === 'experiment_complete') {
                         showComplete(data);
                     }
-                } catch (e) {
-                    console.error('Parse error:', e);
                 }
-            };
-
-            ws.onclose = () => {
-                connected = false;
-                document.getElementById('statusText').textContent = 'DISCONNECTED';
-                document.getElementById('statusBadge').style.borderColor = '#ff224450';
-                document.getElementById('statusBadge').style.background = '#ff224410';
-                document.querySelector('.status-dot').style.background = 'var(--neon-red)';
-                setTimeout(connectWS, 2000);
-            };
-
-            ws.onerror = () => {
-                ws.close();
-            };
+            } catch (e) {
+                // Server not running yet — keep polling silently
+                if (connected) {
+                    connected = false;
+                    document.getElementById('statusText').textContent = 'RECONNECTING';
+                    document.querySelector('.status-dot').style.background = 'var(--neon-yellow)';
+                }
+            }
         }
+
+        function startPolling() {
+            // Poll every 100ms (~10fps updates)
+            pollInterval = setInterval(pollBrainData, 100);
+        }
+
+        // =====================================================
+        // Initialize
+        // =====================================================
+        startPolling();
+
+        // Initial brain canvas
+        updateBrainCanvas([], {});
+        updateDopamineCanvas();
 
         // =====================================================
         // Dashboard Update
@@ -1288,15 +1305,6 @@
                 deadPct > 1 ? 'var(--neon-yellow)' : 'var(--neon-green)';
             document.getElementById('verdictDetail').textContent = detail;
         }
-
-        // =====================================================
-        // Initialize
-        // =====================================================
-        connectWS();
-
-        // Initial brain canvas
-        updateBrainCanvas([], {});
-        updateDopamineCanvas();
     </script>
 </body>
 </html>

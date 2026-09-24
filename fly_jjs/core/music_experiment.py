@@ -181,148 +181,90 @@ def analyze_audio_file():
     }
 
 
-# ── WEBSOCKET SERVER ──────────────────────────────────
-# Serves real-time brain data to the HTML dashboard
+# ── HTTP DATA SERVER ──────────────────────────────────
+# Serves real-time brain data to the HTML dashboard via polling.
+# Dashboard fetches /api/brain every ~100ms for live updates.
 
 import http.server
 import socketserver
-import hashlib
-import struct
-import base64
 
-ws_clients = []
-ws_lock = threading.Lock()
+# Global state: latest brain data for the dashboard to poll
+_latest_brain_data = {}
+_data_lock = threading.Lock()
 dashboard_port = 9876
 
 
-class WebSocketHandler(http.server.BaseHTTPRequestHandler):
-    """HTTP handler that upgrades to WebSocket for /ws path."""
+def update_dashboard_data(data_dict):
+    """Store latest brain data for dashboard polling."""
+    global _latest_brain_data
+    with _data_lock:
+        _latest_brain_data = data_dict
+
+
+class DashboardHandler(http.server.BaseHTTPRequestHandler):
+    """Serves dashboard HTML and brain data API."""
 
     def do_GET(self):
-        if self.path == "/ws":
-            self._handle_websocket()
+        if self.path == "/api/brain":
+            self._serve_brain_data()
         elif self.path == "/" or self.path == "/dashboard":
-            # Serve the dashboard HTML
-            dashboard_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(
-                    os.path.abspath(__file__)))),
-                "music_brain_dashboard.html"
-            )
-            if os.path.exists(dashboard_path):
-                self.send_response(200)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Cache-Control", "no-cache")
-                self.end_headers()
-                with open(dashboard_path, "rb") as f:
-                    self.wfile.write(f.read())
-            else:
-                self.send_response(404)
-                self.end_headers()
-                self.wfile.write(b"Dashboard not found at: " + dashboard_path.encode())
+            self._serve_dashboard()
         else:
             self.send_response(404)
             self.end_headers()
 
-    def _handle_websocket(self):
-        """WebSocket handshake using raw socket writes to avoid HTTP header issues."""
-        key = self.headers.get("Sec-WebSocket-Key", "")
-        if not key:
-            self.send_response(400)
-            self.end_headers()
-            return
-
-        # Compute accept key
-        accept = base64.b64encode(
-            hashlib.sha1((key + "258EAFA5-E914-47DA-95CA-5AB5AA29BE45").encode()).digest()
-        ).decode()
-
-        # Send raw handshake response directly (bypass http.server's extra headers)
-        handshake = (
-            "HTTP/1.1 101 Switching Protocols\r\n"
-            "Upgrade: websocket\r\n"
-            "Connection: Upgrade\r\n"
-            f"Sec-WebSocket-Accept: {accept}\r\n"
-            "\r\n"
+    def _serve_dashboard(self):
+        """Serve the dashboard HTML file."""
+        dashboard_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(
+                os.path.abspath(__file__)))),
+            "music_brain_dashboard.html"
         )
-        self.request.sendall(handshake.encode())
+        if os.path.exists(dashboard_path):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            with open(dashboard_path, "rb") as f:
+                self.wfile.write(f.read())
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(f"Dashboard not found at: {dashboard_path}".encode())
 
-        # Prevent BaseHTTPRequestHandler from trying to read more HTTP requests
-        self.close_connection = True
+    def _serve_brain_data(self):
+        """Serve latest brain state as JSON."""
+        with _data_lock:
+            data = _latest_brain_data.copy()
 
-        # Register client
-        with ws_lock:
-            ws_clients.append(self.request)
-        print(f"[WS] Dashboard connected ({len(ws_clients)} clients)")
-
-        # Keep connection alive — just read and discard incoming frames
         try:
-            self.request.settimeout(1.0)
-            while True:
-                try:
-                    data = self.request.recv(4096)
-                    if not data:
-                        break
-                except socket.timeout:
-                    continue  # Timeout is fine, just loop
-                except Exception:
-                    break
+            payload = json.dumps(data, default=str).encode("utf-8")
         except Exception:
-            pass
-        finally:
-            with ws_lock:
-                if self.request in ws_clients:
-                    ws_clients.remove(self.request)
-            print(f"[WS] Dashboard disconnected ({len(ws_clients)} clients)")
+            payload = b"{}"
+
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Cache-Control", "no-cache, no-store")
+        self.end_headers()
+        self.wfile.write(payload)
 
     def log_message(self, format, *args):
         pass  # Suppress HTTP logs
 
 
-def ws_send(data_dict):
-    """Send JSON data to all connected WebSocket clients."""
-    try:
-        payload = json.dumps(data_dict, default=str).encode("utf-8")
-    except Exception:
-        return
-
-    # WebSocket frame: opcode 0x1 (text), with length encoding
-    frame = bytearray()
-    frame.append(0x81)  # FIN + text opcode
-    length = len(payload)
-    if length < 126:
-        frame.append(length)
-    elif length < 65536:
-        frame.append(126)
-        frame.extend(struct.pack(">H", length))
-    else:
-        frame.append(127)
-        frame.extend(struct.pack(">Q", length))
-    frame.extend(payload)
-    frame_bytes = bytes(frame)
-
-    with ws_lock:
-        dead = []
-        for client in ws_clients:
-            try:
-                client.sendall(frame_bytes)
-            except Exception:
-                dead.append(client)
-        for d in dead:
-            ws_clients.remove(d)
-
-
 class ThreadedHTTPServer(socketserver.ThreadingTCPServer):
-    """Threaded HTTP server that can handle WebSocket + HTTP concurrently."""
+    """Threaded HTTP server for concurrent dashboard requests."""
     allow_reuse_address = True
     daemon_threads = True
 
 
-def start_ws_server():
-    """Start the WebSocket/HTTP server in a background thread."""
-    server = ThreadedHTTPServer(("", dashboard_port), WebSocketHandler)
+def start_dashboard_server():
+    """Start the dashboard HTTP server in a background thread."""
+    server = ThreadedHTTPServer(("", dashboard_port), DashboardHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    print(f"[WS] Dashboard server running at http://localhost:{dashboard_port}")
+    print(f"[Server] Dashboard running at http://localhost:{dashboard_port}")
     return server
 
 
@@ -596,7 +538,7 @@ def run_music_experiment():
 
     # Step 3: Start WebSocket server for dashboard
     print("\n[Step 3] Starting brain dashboard server...")
-    server = start_ws_server()
+    server = start_dashboard_server()
 
     # Step 4: Open dashboard in browser
     dashboard_url = f"http://localhost:{dashboard_port}"
@@ -684,7 +626,7 @@ def run_music_experiment():
                     arousal *= 0.95
 
                     # Send to dashboard
-                    ws_send({
+                    update_dashboard_data({
                         "type": "brain_update",
                         "step": step + cooldown_step,
                         "phase": "COOLDOWN",
@@ -800,8 +742,8 @@ def run_music_experiment():
                 pop_data[pop_name] = float(rate)
 
             # ── SEND TO DASHBOARD ──
-            if step % 2 == 0:  # Send every other frame to reduce bandwidth
-                ws_send({
+            if step % 2 == 0:  # Update every other frame
+                update_dashboard_data({
                     "type": "brain_update",
                     "step": step,
                     "phase": health["phase"],
@@ -906,7 +848,7 @@ def run_music_experiment():
         print("  The fly's brain handled the music without significant damage.")
 
     # Send final summary to dashboard
-    ws_send({
+    update_dashboard_data({
         "type": "experiment_complete",
         "summary": experiment_log["final_health"],
         "verdict": fh['final_phase'],
