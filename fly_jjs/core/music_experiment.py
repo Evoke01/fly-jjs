@@ -2,6 +2,7 @@ import time
 import os
 import sys
 import json
+import socket
 import threading
 import subprocess
 import numpy as np
@@ -187,13 +188,14 @@ import http.server
 import socketserver
 import hashlib
 import struct
+import base64
 
 ws_clients = []
 ws_lock = threading.Lock()
 dashboard_port = 9876
 
 
-class WebSocketHandler(http.server.SimpleHTTPRequestHandler):
+class WebSocketHandler(http.server.BaseHTTPRequestHandler):
     """HTTP handler that upgrades to WebSocket for /ws path."""
 
     def do_GET(self):
@@ -208,41 +210,61 @@ class WebSocketHandler(http.server.SimpleHTTPRequestHandler):
             )
             if os.path.exists(dashboard_path):
                 self.send_response(200)
-                self.send_header("Content-Type", "text/html")
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache")
                 self.end_headers()
                 with open(dashboard_path, "rb") as f:
                     self.wfile.write(f.read())
             else:
                 self.send_response(404)
                 self.end_headers()
-                self.wfile.write(b"Dashboard not found")
+                self.wfile.write(b"Dashboard not found at: " + dashboard_path.encode())
         else:
-            super().do_GET()
+            self.send_response(404)
+            self.end_headers()
 
     def _handle_websocket(self):
-        """WebSocket handshake and registration."""
+        """WebSocket handshake using raw socket writes to avoid HTTP header issues."""
         key = self.headers.get("Sec-WebSocket-Key", "")
-        accept = hashlib.sha1(
-            (key + "258EAFA5-E914-47DA-95CA-5AB5AA29BE45").encode()
-        ).digest()
-        import base64
-        accept_b64 = base64.b64encode(accept).decode()
+        if not key:
+            self.send_response(400)
+            self.end_headers()
+            return
 
-        self.send_response(101)
-        self.send_header("Upgrade", "websocket")
-        self.send_header("Connection", "Upgrade")
-        self.send_header("Sec-WebSocket-Accept", accept_b64)
-        self.end_headers()
+        # Compute accept key
+        accept = base64.b64encode(
+            hashlib.sha1((key + "258EAFA5-E914-47DA-95CA-5AB5AA29BE45").encode()).digest()
+        ).decode()
 
+        # Send raw handshake response directly (bypass http.server's extra headers)
+        handshake = (
+            "HTTP/1.1 101 Switching Protocols\r\n"
+            "Upgrade: websocket\r\n"
+            "Connection: Upgrade\r\n"
+            f"Sec-WebSocket-Accept: {accept}\r\n"
+            "\r\n"
+        )
+        self.request.sendall(handshake.encode())
+
+        # Prevent BaseHTTPRequestHandler from trying to read more HTTP requests
+        self.close_connection = True
+
+        # Register client
         with ws_lock:
             ws_clients.append(self.request)
         print(f"[WS] Dashboard connected ({len(ws_clients)} clients)")
 
-        # Keep connection alive
+        # Keep connection alive — just read and discard incoming frames
         try:
+            self.request.settimeout(1.0)
             while True:
-                data = self.request.recv(1024)
-                if not data:
+                try:
+                    data = self.request.recv(4096)
+                    if not data:
+                        break
+                except socket.timeout:
+                    continue  # Timeout is fine, just loop
+                except Exception:
                     break
         except Exception:
             pass
@@ -258,7 +280,11 @@ class WebSocketHandler(http.server.SimpleHTTPRequestHandler):
 
 def ws_send(data_dict):
     """Send JSON data to all connected WebSocket clients."""
-    payload = json.dumps(data_dict).encode("utf-8")
+    try:
+        payload = json.dumps(data_dict, default=str).encode("utf-8")
+    except Exception:
+        return
+
     # WebSocket frame: opcode 0x1 (text), with length encoding
     frame = bytearray()
     frame.append(0x81)  # FIN + text opcode
@@ -272,22 +298,28 @@ def ws_send(data_dict):
         frame.append(127)
         frame.extend(struct.pack(">Q", length))
     frame.extend(payload)
+    frame_bytes = bytes(frame)
 
     with ws_lock:
         dead = []
         for client in ws_clients:
             try:
-                client.sendall(bytes(frame))
+                client.sendall(frame_bytes)
             except Exception:
                 dead.append(client)
         for d in dead:
             ws_clients.remove(d)
 
 
+class ThreadedHTTPServer(socketserver.ThreadingTCPServer):
+    """Threaded HTTP server that can handle WebSocket + HTTP concurrently."""
+    allow_reuse_address = True
+    daemon_threads = True
+
+
 def start_ws_server():
     """Start the WebSocket/HTTP server in a background thread."""
-    server = socketserver.TCPServer(("", dashboard_port), WebSocketHandler)
-    server.allow_reuse_address = True
+    server = ThreadedHTTPServer(("", dashboard_port), WebSocketHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     print(f"[WS] Dashboard server running at http://localhost:{dashboard_port}")
