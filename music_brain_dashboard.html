@@ -519,7 +519,7 @@
 
     <!-- EXPERIMENT COMPLETE -->
     <div class="complete-overlay" id="completeOverlay">
-        <div id="verdictEmoji" style="font-size: 80px; margin-bottom: 20px;">💀</div>
+        <img id="verdictImg" src="/memes/peak_crying.png" style="width: 250px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 0 30px rgba(255, 0, 0, 0.4);" alt="Verdict Image">
         <div class="verdict-text" id="verdictText">EXPERIMENT COMPLETE</div>
         <div class="verdict-detail" id="verdictDetail"></div>
     </div>
@@ -652,7 +652,8 @@
         <!-- MEME REACTION -->
         <div class="card meme-card" id="memeCard">
             <div class="card-title"><span class="icon">😂</span> Fly Emotional State</div>
-            <div class="meme-emoji" id="memeEmoji">🪰</div>
+            <div class="meme-emoji" id="memeEmoji" style="display: none;">🪰</div>
+            <img class="meme-img" id="memeImg" src="/memes/angry_bird.png" style="display: block; width: 100%; max-width: 250px; margin: 20px auto; border-radius: 12px; box-shadow: 0 0 15px rgba(0, 255, 136, 0.3); transition: all 0.3s ease;" alt="Fly Emotion">
             <div class="meme-label" id="memeLabel" style="color: var(--neon-cyan);">WAITING</div>
             <div class="meme-sublabel" id="memeSublabel">The fly hasn't heard anything yet...</div>
         </div>
@@ -1211,22 +1212,29 @@
 
         function updateMeme(memeId, health) {
             const meme = MEME_DATA[memeId] || MEME_DATA.neutral;
-            const emojiEl = document.getElementById('memeEmoji');
+            const imgEl = document.getElementById('memeImg');
             const labelEl = document.getElementById('memeLabel');
             const subEl = document.getElementById('memeSublabel');
 
-            emojiEl.textContent = meme.emoji;
+            // Map states to user uploaded images
+            const normalStates = ['neutral', 'vibing', 'hype', 'thinking', 'sleeping'];
+            if (normalStates.includes(memeId)) {
+                imgEl.src = '/memes/angry_bird.png';
+            } else {
+                imgEl.src = '/memes/peak_crying.png'; // Overstimulated / Brain melting
+            }
+
             labelEl.textContent = meme.label;
             labelEl.style.color = meme.color;
             subEl.textContent = meme.sub;
 
             // Animation
-            emojiEl.classList.remove('shake', 'bounce');
-            void emojiEl.offsetWidth; // Trigger reflow
+            imgEl.classList.remove('shake', 'bounce');
+            void imgEl.offsetWidth; // Trigger reflow
             if (['screaming', 'explosion', 'skull', 'crying'].includes(memeId)) {
-                emojiEl.classList.add('shake');
+                imgEl.classList.add('shake');
             } else {
-                emojiEl.classList.add('bounce');
+                imgEl.classList.add('bounce');
             }
 
             // Update card glow based on severity
@@ -1277,27 +1285,27 @@
             const summary = data.summary || {};
             const deadPct = (summary.dead_pct || 0) * 100;
 
-            let emoji, verdict, detail;
+            let imgSrc, verdict, detail;
 
             if (deadPct > 20) {
-                emoji = '💀';
+                imgSrc = '/memes/peak_crying.png';
                 verdict = 'BRAIN DESTROYED';
                 detail = `The fly's brain was COOKED by AIZO.\n${summary.dead_neurons} out of ${brainData?.total_neurons || '???'} neurons died.\nThat's ${deadPct.toFixed(1)}% neural death from excitotoxicity.\nVerdict: AIZO is lethal to fruit flies.`;
             } else if (deadPct > 5) {
-                emoji = '🤯';
+                imgSrc = '/memes/peak_crying.png';
                 verdict = 'SIGNIFICANT DAMAGE';
                 detail = `AIZO caused real brain damage.\n${summary.dead_neurons} neurons were killed (${deadPct.toFixed(1)}%).\nThe fly survived but with reduced cognitive capacity.`;
             } else if (deadPct > 1) {
-                emoji = '😵‍💫';
+                imgSrc = '/memes/peak_crying.png';
                 verdict = 'MILD DAMAGE';
                 detail = `The fly took some hits but mostly survived.\n${summary.dead_neurons} neurons lost (${deadPct.toFixed(1)}%).\nA bit brain damaged but still functional.`;
             } else {
-                emoji = '😎';
+                imgSrc = '/memes/angry_bird.png';
                 verdict = 'BRAIN SURVIVED';
                 detail = `The fly's brain handled AIZO without major damage.\nOnly ${summary.dead_neurons} neurons lost.\nEither the fly vibed with it, or AIZO isn't as deadly as we thought.`;
             }
 
-            document.getElementById('verdictEmoji').textContent = emoji;
+            document.getElementById('verdictImg').src = imgSrc;
             document.getElementById('verdictText').textContent = verdict;
             document.getElementById('verdictText').style.color =
                 deadPct > 20 ? 'var(--neon-red)' :

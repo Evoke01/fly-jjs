@@ -209,6 +209,8 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
             self._serve_brain_data()
         elif self.path == "/" or self.path == "/dashboard":
             self._serve_dashboard()
+        elif self.path.startswith("/memes/"):
+            self._serve_meme()
         else:
             self.send_response(404)
             self.end_headers()
@@ -231,6 +233,34 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
             self.wfile.write(f"Dashboard not found at: {dashboard_path}".encode())
+
+    def _serve_meme(self):
+        """Serve meme images from the memes directory."""
+        filename = os.path.basename(self.path)
+        # Safely resolve path
+        meme_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(
+                os.path.abspath(__file__)))),
+            "memes"
+        )
+        meme_path = os.path.join(meme_dir, filename)
+        
+        if os.path.exists(meme_path) and os.path.isfile(meme_path):
+            self.send_response(200)
+            if filename.endswith(".png"):
+                self.send_header("Content-Type", "image/png")
+            elif filename.endswith(".jpg") or filename.endswith(".jpeg"):
+                self.send_header("Content-Type", "image/jpeg")
+            elif filename.endswith(".gif"):
+                self.send_header("Content-Type", "image/gif")
+            self.send_header("Cache-Control", "public, max-age=31536000")
+            self.end_headers()
+            with open(meme_path, "rb") as f:
+                self.wfile.write(f.read())
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b"Meme not found")
 
     def _serve_brain_data(self):
         """Serve latest brain state as JSON."""
