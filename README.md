@@ -61,10 +61,10 @@ Deletes the current `fly_weights.npy` file, erasing all learned behaviors and re
 ### `[4] Check for Updates`
 Pulls the latest code and features from the GitHub repository automatically.
 
-### `[5] 🎵 Music Experiment (AIZO)`
+### `[5] 🎵 Music Experiment`
 Runs the experimental audio stimulation module.
-- The script analyzes the audio frequencies of the track (e.g., AIZO).
-- It injects these frequencies directly into the fly's simulated auditory system.
+- You can **paste your own custom YouTube URL** or press Enter to use the default extreme bass track (AIZO).
+- The script automatically downloads the audio, analyzes the frequencies, and injects them directly into the fly's simulated auditory and mechanosensory systems.
 - Open your browser to `http://localhost:9876` to view the **Live Neural Dashboard**, which tracks brain activity, neural death (from excitotoxicity), and dopamine levels in real-time.
 
 ---
