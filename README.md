@@ -12,7 +12,8 @@ By observing your gameplay or playing on its own, the fly learns to fight using 
 ## Features
 - **Biologically Accurate RL**: Uses the `flybrain` library to simulate 130,000+ neurons and synapses.
 - **Imitation Learning**: The fly watches you play and learns to associate visual stimuli with actions.
-- **Interactive CLI**: Easily switch between playing and training modes right from your terminal.
+- **AIZO Music Experiment**: Blast the fly's brain with audio, tracked live through a sleek web dashboard monitoring neural activity, excitotoxicity, dopamine release, and emotional states via memes.
+- **Interactive CLI**: Easily switch between playing, training, and experimenting right from your terminal.
 
 ---
 
@@ -60,11 +61,17 @@ Deletes the current `fly_weights.npy` file, erasing all learned behaviors and re
 ### `[4] Check for Updates`
 Pulls the latest code and features from the GitHub repository automatically.
 
+### `[5] 🎵 Music Experiment (AIZO)`
+Runs the experimental audio stimulation module.
+- The script analyzes the audio frequencies of the track (e.g., AIZO).
+- It injects these frequencies directly into the fly's simulated auditory system.
+- Open your browser to `http://localhost:9876` to view the **Live Neural Dashboard**, which tracks brain activity, neural death (from excitotoxicity), and dopamine levels in real-time.
+
 ---
 
 ## ⚠️ Notes
-- The fly will save its learned weights in your home directory at `~/.fly_jjs/weights.npy`, so it keeps its memories even if you move the project folder.
-- Ensure your Roblox window is visible and active when running either mode.
+- The fly will save its learned weights in your home directory at `~/.fly_jjs/fly_weights.npy`, so it keeps its memories even if you move the project folder.
+- Ensure your Roblox window is visible and active when running gameplay modes.
 
 ---
 
