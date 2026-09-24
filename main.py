@@ -36,7 +36,10 @@ def print_menu():
     print("  \x1b[38;5;111m[ 4 ] 🔄  Check for Updates\x1b[0m")
     print("        \x1b[38;5;244mPull the latest code and features from GitHub.\x1b[0m\n")
     
-    print("  \x1b[38;5;240m[ 5 ] ❌  Exit System\x1b[0m\n")
+    print("  \x1b[38;5;213m[ 5 ] 🎵  Music Experiment (AIZO)\x1b[0m")
+    print("        \x1b[38;5;244mMake the fly listen to AIZO and watch its brain melt.\x1b[0m\n")
+    
+    print("  \x1b[38;5;240m[ 6 ] ❌  Exit System\x1b[0m\n")
     
     print("\x1b[38;5;239m" + "─" * 60 + "\x1b[0m")
     print("  \x1b[3;38;5;240mPowered by connectome data from Janelia Research (HHMI)\x1b[0m")
@@ -100,11 +103,17 @@ def main():
             
         elif choice == '5':
             clear_screen()
+            print("\x1b[38;5;213m  [+] Initializing Music Experiment...\x1b[0m")
+            from fly_jjs.core.music_experiment import run_music_experiment
+            run_music_experiment()
+            
+        elif choice == '6':
+            clear_screen()
             print("\n  \x1b[38;5;46mShutting down FlyBrain simulator... Goodbye!\x1b[0m\n")
             sys.exit(0)
             
         else:
-            print("\n  \x1b[38;5;196m[!] Invalid command. Please select 1-5.\x1b[0m")
+            print("\n  \x1b[38;5;196m[!] Invalid command. Please select 1-6.\x1b[0m")
             time.sleep(1)
 
 if __name__ == "__main__":

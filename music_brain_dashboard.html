@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlyBrain × AIZO — Neural Music Experiment Dashboard</title>
+    <meta name="description" content="Real-time visualization of a fruit fly brain being bombarded with AIZO music. Watch neurons fire, die, and the fly's emotional reactions.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-void: #000000;
+            --bg-deep: #020408;
+            --bg-card: #0a0e18;
+            --bg-card-glow: #0d1220;
+            --border: #1a2035;
+            --border-glow: #2a3a5a;
+            --text: #c0c8d8;
+            --text-dim: #5a6a80;
+            --text-bright: #ffffff;
+
+            --neon-cyan: #00f5ff;
+            --neon-magenta: #ff00aa;
+            --neon-orange: #ff6a00;
+            --neon-green: #00ff88;
+            --neon-red: #ff2244;
+            --neon-purple: #aa44ff;
+            --neon-yellow: #ffdd00;
+            --neon-blue: #4488ff;
+
+            --glow-cyan: 0 0 20px #00f5ff40, 0 0 40px #00f5ff20;
+            --glow-red: 0 0 20px #ff224440, 0 0 40px #ff224420;
+            --glow-green: 0 0 20px #00ff8840, 0 0 40px #00ff8820;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-void);
+            color: var(--text);
+            line-height: 1.5;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* ── BACKGROUND EFFECTS ── */
+        .bg-grid {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background-image:
+                radial-gradient(circle at 50% 50%, #00f5ff05 0%, transparent 50%),
+                linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        .bg-pulse {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .bg-pulse.active {
+            opacity: 1;
+            animation: pulse-bg 0.5s ease-out;
+        }
+
+        @keyframes pulse-bg {
+            0% { background: radial-gradient(circle at 50% 50%, rgba(255,0,170,0.15), transparent 60%); }
+            100% { background: radial-gradient(circle at 50% 50%, transparent, transparent); }
+        }
+
+        /* ── HEADER ── */
+        .header {
+            position: relative; z-index: 10;
+            padding: 20px 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #0a0e18cc, transparent);
+            backdrop-filter: blur(10px);
+        }
+
+        .header-left {
+            display: flex; align-items: center; gap: 16px;
+        }
+
+        .logo {
+            font-size: 28px; font-weight: 900;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        .experiment-tag {
+            background: linear-gradient(135deg, #ff00aa20, #ff6a0020);
+            border: 1px solid #ff00aa40;
+            padding: 4px 14px; border-radius: 20px;
+            font-size: 11px; font-weight: 600; text-transform: uppercase;
+            color: var(--neon-magenta); letter-spacing: 1.5px;
+        }
+
+        .header-right {
+            display: flex; align-items: center; gap: 20px;
+        }
+
+        .status-badge {
+            display: flex; align-items: center; gap: 8px;
+            font-family: 'JetBrains Mono', monospace; font-size: 12px;
+            padding: 6px 14px; border-radius: 8px;
+            background: #00ff8810; border: 1px solid #00ff8830;
+            color: var(--neon-green);
+        }
+
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--neon-green);
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .timer {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px; font-weight: 600;
+            color: var(--neon-cyan);
+            text-shadow: var(--glow-cyan);
+        }
+
+        /* ── MAIN GRID ── */
+        .dashboard {
+            position: relative; z-index: 5;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 16px;
+            padding: 16px 24px 24px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* ── CARDS ── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+            opacity: 0.5;
+        }
+
+        .card:hover {
+            border-color: var(--border-glow);
+        }
+
+        .card-title {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 2px; color: var(--text-dim);
+            margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .card-title .icon {
+            font-size: 14px;
+        }
+
+        /* ── BRAIN VISUALIZATION (full width) ── */
+        .brain-card {
+            grid-column: 1 / -1;
+        }
+
+        .brain-container {
+            display: flex; gap: 20px; align-items: flex-start;
+        }
+
+        #brainCanvas {
+            border-radius: 12px;
+            background: #000;
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .brain-stats {
+            flex: 1; display: flex; flex-direction: column; gap: 12px;
+        }
+
+        .stat-row {
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .stat-label {
+            font-size: 11px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--text-dim);
+            min-width: 80px;
+        }
+
+        .stat-bar-bg {
+            flex: 1; height: 14px; border-radius: 7px;
+            background: #0a0e18; position: relative;
+            overflow: hidden;
+        }
+
+        .stat-bar-fill {
+            height: 100%; border-radius: 7px;
+            transition: width 0.2s ease-out;
+            position: relative;
+        }
+
+        .stat-bar-fill::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2));
+            border-radius: 7px;
+        }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px; font-weight: 600;
+            min-width: 50px; text-align: right;
+        }
+
+        /* ── AUDIO SPECTRUM ── */
+        #spectrumCanvas {
+            width: 100%; height: 120px;
+            border-radius: 10px; background: #000;
+            border: 1px solid var(--border);
+        }
+
+        /* ── MEME PANEL ── */
+        .meme-card {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center;
+            min-height: 300px;
+        }
+
+        .meme-emoji {
+            font-size: 100px;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            filter: drop-shadow(0 0 30px rgba(255,255,255,0.3));
+        }
+
+        .meme-emoji.shake {
+            animation: shake 0.3s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) rotate(0); }
+            25% { transform: translateX(-8px) rotate(-5deg); }
+            75% { transform: translateX(8px) rotate(5deg); }
+        }
+
+        .meme-emoji.bounce {
+            animation: bounce 0.5s ease;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-20px) scale(1.2); }
+        }
+
+        .meme-label {
+            font-size: 16px; font-weight: 700;
+            margin-top: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: color 0.3s;
+        }
+
+        .meme-sublabel {
+            font-size: 12px; color: var(--text-dim);
+            margin-top: 6px; text-align: center;
+            max-width: 250px;
+        }
+
+        /* ── PHASE BANNER ── */
+        .phase-banner {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 16px;
+            font-size: 14px; font-weight: 800;
+            text-transform: uppercase; letter-spacing: 4px;
+            border-radius: 12px;
+            transition: all 0.5s;
+        }
+
+        .phase-BASELINE {
+            background: linear-gradient(135deg, #00ff8808, #00ff8803);
+            border: 1px solid #00ff8830;
+            color: var(--neon-green);
+            text-shadow: var(--glow-green);
+        }
+
+        .phase-STIMULATED {
+            background: linear-gradient(135deg, #00f5ff08, #4488ff03);
+            border: 1px solid #00f5ff30;
+            color: var(--neon-cyan);
+            text-shadow: var(--glow-cyan);
+        }
+
+        .phase-STRESSED {
+            background: linear-gradient(135deg, #ffdd0008, #ff6a0003);
+            border: 1px solid #ffdd0030;
+            color: var(--neon-yellow);
+        }
+
+        .phase-DAMAGED {
+            background: linear-gradient(135deg, #ff660008, #ff224403);
+            border: 1px solid #ff660030;
+            color: var(--neon-orange);
+            animation: damage-pulse 1s infinite;
+        }
+
+        .phase-CRITICAL {
+            background: linear-gradient(135deg, #ff224408, #ff00aa03);
+            border: 1px solid #ff224450;
+            color: var(--neon-red);
+            text-shadow: var(--glow-red);
+            animation: critical-pulse 0.5s infinite;
+        }
+
+        .phase-COOLDOWN {
+            background: linear-gradient(135deg, #4488ff08, #aa44ff03);
+            border: 1px solid #4488ff30;
+            color: var(--neon-blue);
+        }
+
+        @keyframes damage-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes critical-pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 30px #ff224430; }
+            50% { opacity: 0.8; box-shadow: 0 0 60px #ff224450; }
+        }
+
+        /* ── POPULATION BARS ── */
+        .pop-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .pop-item {
+            display: flex; flex-direction: column; gap: 4px;
+        }
+
+        .pop-name {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1.5px; color: var(--text-dim);
+        }
+
+        .pop-bar-bg {
+            height: 10px; border-radius: 5px; background: #0a0e18;
+            overflow: hidden;
+        }
+
+        .pop-bar-fill {
+            height: 100%; border-radius: 5px;
+            transition: width 0.15s;
+        }
+
+        /* ── DAMAGE LOG ── */
+        .damage-log {
+            max-height: 200px; overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        .damage-log::-webkit-scrollbar { width: 4px; }
+        .damage-log::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+        .damage-entry {
+            padding: 6px 10px; border-radius: 6px;
+            margin-bottom: 4px;
+            display: flex; align-items: center; gap: 8px;
+            animation: slide-in 0.3s ease-out;
+        }
+
+        @keyframes slide-in {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .damage-entry.excitotoxicity {
+            background: #ff224410; border-left: 3px solid var(--neon-red);
+            color: var(--neon-red);
+        }
+
+        .damage-entry.phase-change {
+            background: #ffdd0010; border-left: 3px solid var(--neon-yellow);
+            color: var(--neon-yellow);
+        }
+
+        .damage-entry.info {
+            background: #00f5ff08; border-left: 3px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+
+        /* ── NEURON HEATMAP ── */
+        #fatigueCanvas {
+            width: 100%; height: 80px;
+            border-radius: 8px; background: #000;
+            border: 1px solid var(--border);
+        }
+
+        /* ── DOPAMINE SPARKLINE ── */
+        #dopamineCanvas {
+            width: 100%; height: 60px;
+            border-radius: 8px; background: #000;
+            border: 1px solid var(--border);
+        }
+
+        /* ── WAITING STATE ── */
+        .waiting-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: var(--bg-void);
+            transition: opacity 0.5s;
+        }
+
+        .waiting-overlay.hidden {
+            opacity: 0; pointer-events: none;
+        }
+
+        .waiting-spinner {
+            width: 60px; height: 60px;
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--neon-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 24px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .waiting-text {
+            font-size: 18px; font-weight: 600;
+            color: var(--neon-cyan);
+            margin-bottom: 8px;
+        }
+
+        .waiting-sub {
+            font-size: 13px; color: var(--text-dim);
+        }
+
+        /* ── EXPERIMENT COMPLETE OVERLAY ── */
+        .complete-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            display: none; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(20px);
+        }
+
+        .complete-overlay.visible {
+            display: flex;
+            animation: fade-in 1s ease;
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .verdict-text {
+            font-size: 48px; font-weight: 900;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .verdict-detail {
+            font-size: 16px; color: var(--text);
+            text-align: center; max-width: 500px;
+            line-height: 1.8;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 1000px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            .brain-container {
+                flex-direction: column;
+            }
+            #brainCanvas {
+                width: 100% !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-pulse" id="bgPulse"></div>
+
+    <!-- WAITING OVERLAY -->
+    <div class="waiting-overlay" id="waitingOverlay">
+        <div class="waiting-spinner"></div>
+        <div class="waiting-text">Connecting to Fly Brain...</div>
+        <div class="waiting-sub">Waiting for the Python experiment to start</div>
+        <div class="waiting-sub" style="margin-top: 20px; color: #5a6a80">
+            Run <code style="color: var(--neon-cyan)">python main.py</code> and select the Music Experiment
+        </div>
+    </div>
+
+    <!-- EXPERIMENT COMPLETE -->
+    <div class="complete-overlay" id="completeOverlay">
+        <div id="verdictEmoji" style="font-size: 80px; margin-bottom: 20px;">💀</div>
+        <div class="verdict-text" id="verdictText">EXPERIMENT COMPLETE</div>
+        <div class="verdict-detail" id="verdictDetail"></div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">FLYBRAIN</div>
+            <span class="experiment-tag">🎵 AIZO Experiment</span>
+        </div>
+        <div class="header-right">
+            <div class="status-badge" id="statusBadge">
+                <div class="status-dot"></div>
+                <span id="statusText">CONNECTING</span>
+            </div>
+            <div class="timer" id="timer">00:00.0</div>
+        </div>
+    </header>
+
+    <!-- DASHBOARD -->
+    <main class="dashboard">
+        <!-- PHASE BANNER -->
+        <div class="phase-banner phase-BASELINE" id="phaseBanner">
+            ⏳ WAITING FOR EXPERIMENT START
+        </div>
+
+        <!-- BRAIN VISUALIZATION -->
+        <div class="card brain-card">
+            <div class="card-title"><span class="icon">🧠</span> Neural Activity — Live Connectome</div>
+            <div class="brain-container">
+                <canvas id="brainCanvas" width="560" height="320"></canvas>
+                <div class="brain-stats">
+                    <!-- Firing Rate -->
+                    <div class="stat-row">
+                        <span class="stat-label">Firing</span>
+                        <div class="stat-bar-bg">
+                            <div class="stat-bar-fill" id="firingBar" style="width: 0%; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue));"></div>
+                        </div>
+                        <span class="stat-value" id="firingValue" style="color: var(--neon-cyan);">0%</span>
+                    </div>
+                    <!-- Arousal -->
+                    <div class="stat-row">
+                        <span class="stat-label">Arousal</span>
+                        <div class="stat-bar-bg">
+                            <div class="stat-bar-fill" id="arousalBar" style="width: 0%; background: linear-gradient(90deg, var(--neon-orange), var(--neon-red));"></div>
+                        </div>
+                        <span class="stat-value" id="arousalValue" style="color: var(--neon-orange);">0%</span>
+                    </div>
+                    <!-- Dopamine -->
+                    <div class="stat-row">
+                        <span class="stat-label">Dopamine</span>
+                        <div class="stat-bar-bg">
+                            <div class="stat-bar-fill" id="dopamineBar" style="width: 50%; background: linear-gradient(90deg, var(--neon-red), var(--neon-green));"></div>
+                        </div>
+                        <span class="stat-value" id="dopamineValue" style="color: var(--neon-green);">0.00</span>
+                    </div>
+                    <!-- Stress -->
+                    <div class="stat-row">
+                        <span class="stat-label">Stress</span>
+                        <div class="stat-bar-bg">
+                            <div class="stat-bar-fill" id="stressBar" style="width: 0%; background: linear-gradient(90deg, var(--neon-yellow), var(--neon-red));"></div>
+                        </div>
+                        <span class="stat-value" id="stressValue" style="color: var(--neon-yellow);">0%</span>
+                    </div>
+                    <!-- Coherence -->
+                    <div class="stat-row">
+                        <span class="stat-label">Coherence</span>
+                        <div class="stat-bar-bg">
+                            <div class="stat-bar-fill" id="coherenceBar" style="width: 100%; background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan));"></div>
+                        </div>
+                        <span class="stat-value" id="coherenceValue" style="color: var(--neon-green);">100%</span>
+                    </div>
+                    <!-- Dead Neurons -->
+                    <div class="stat-row">
+                        <span class="stat-label">Dead</span>
+                        <div class="stat-bar-bg">
+                            <div class="stat-bar-fill" id="deadBar" style="width: 0%; background: linear-gradient(90deg, #333, var(--neon-red));"></div>
+                        </div>
+                        <span class="stat-value" id="deadValue" style="color: var(--neon-red);">0</span>
+                    </div>
+                    <!-- Fatigue Heatmap -->
+                    <div style="margin-top: 8px;">
+                        <div class="stat-label" style="margin-bottom: 6px;">Neuron Fatigue Map</div>
+                        <canvas id="fatigueCanvas" width="400" height="40"></canvas>
+                    </div>
+                    <!-- Dopamine Sparkline -->
+                    <div>
+                        <div class="stat-label" style="margin-bottom: 6px;">Dopamine History</div>
+                        <canvas id="dopamineCanvas" width="400" height="40"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AUDIO SPECTRUM -->
+        <div class="card">
+            <div class="card-title"><span class="icon">🎵</span> Audio Frequency Spectrum</div>
+            <canvas id="spectrumCanvas" width="700" height="120"></canvas>
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 10px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">
+                <span>Sub-Bass</span>
+                <span>Bass</span>
+                <span>Low Mid</span>
+                <span>Mid</span>
+                <span>High</span>
+                <span>Ultra High</span>
+            </div>
+            <div style="margin-top: 16px;">
+                <div class="card-title" style="margin-bottom: 8px;"><span class="icon">📊</span> Audio Metrics</div>
+                <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 120px;">
+                        <div class="stat-label">Loudness (RMS)</div>
+                        <div class="stat-bar-bg" style="margin-top: 4px;">
+                            <div class="stat-bar-fill" id="rmsBar" style="width: 0%; background: var(--neon-magenta);"></div>
+                        </div>
+                    </div>
+                    <div style="flex: 1; min-width: 120px;">
+                        <div class="stat-label">Onset Strength</div>
+                        <div class="stat-bar-bg" style="margin-top: 4px;">
+                            <div class="stat-bar-fill" id="onsetBar" style="width: 0%; background: var(--neon-orange);"></div>
+                        </div>
+                    </div>
+                    <div style="flex: 1; min-width: 120px; text-align: center;">
+                        <div class="stat-label">Beat</div>
+                        <div id="beatIndicator" style="font-size: 24px; margin-top: 4px; opacity: 0.2; transition: opacity 0.1s;">🥁</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MEME REACTION -->
+        <div class="card meme-card" id="memeCard">
+            <div class="card-title"><span class="icon">😂</span> Fly Emotional State</div>
+            <div class="meme-emoji" id="memeEmoji">🪰</div>
+            <div class="meme-label" id="memeLabel" style="color: var(--neon-cyan);">WAITING</div>
+            <div class="meme-sublabel" id="memeSublabel">The fly hasn't heard anything yet...</div>
+        </div>
+
+        <!-- POPULATION ACTIVITY -->
+        <div class="card">
+            <div class="card-title"><span class="icon">⚡</span> Neural Population Responses</div>
+            <div class="pop-grid" id="popGrid">
+                <!-- Filled dynamically -->
+            </div>
+        </div>
+
+        <!-- DAMAGE LOG -->
+        <div class="card">
+            <div class="card-title"><span class="icon">💀</span> Damage Event Log</div>
+            <div class="damage-log" id="damageLog">
+                <div class="damage-entry info">
+                    <span>⏳</span> <span>Waiting for experiment to begin...</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // =====================================================
+        // WebSocket Connection
+        // =====================================================
+        let ws = null;
+        let connected = false;
+        let brainData = null;
+        let dopamineHistory = [];
+        let firingHistory = [];
+        let damageEntries = [];
+        let lastMeme = '';
+        let brainHeatmap = new Float32Array(500);
+        let lastPhase = '';
+
+        function connectWS() {
+            const wsUrl = `ws://${window.location.hostname}:${window.location.port}/ws`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                connected = true;
+                document.getElementById('waitingOverlay').classList.add('hidden');
+                document.getElementById('statusText').textContent = 'LIVE';
+                document.getElementById('statusBadge').style.borderColor = '#00ff8850';
+                addDamageEntry('info', '🔗 Connected to fly brain');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'brain_update') {
+                        brainData = data;
+                        updateDashboard(data);
+                    } else if (data.type === 'experiment_complete') {
+                        showComplete(data);
+                    }
+                } catch (e) {
+                    console.error('Parse error:', e);
+                }
+            };
+
+            ws.onclose = () => {
+                connected = false;
+                document.getElementById('statusText').textContent = 'DISCONNECTED';
+                document.getElementById('statusBadge').style.borderColor = '#ff224450';
+                document.getElementById('statusBadge').style.background = '#ff224410';
+                document.querySelector('.status-dot').style.background = 'var(--neon-red)';
+                setTimeout(connectWS, 2000);
+            };
+
+            ws.onerror = () => {
+                ws.close();
+            };
+        }
+
+        // =====================================================
+        // Dashboard Update
+        // =====================================================
+        function updateDashboard(data) {
+            // Timer
+            const elapsed = data.elapsed || 0;
+            const mins = Math.floor(elapsed / 60);
+            const secs = (elapsed % 60).toFixed(1);
+            document.getElementById('timer').textContent =
+                `${String(mins).padStart(2, '0')}:${String(secs).padStart(4, '0')}`;
+
+            // Phase banner
+            const phase = data.phase || 'BASELINE';
+            const banner = document.getElementById('phaseBanner');
+            if (phase !== lastPhase) {
+                banner.className = `phase-banner phase-${phase}`;
+                const phaseMessages = {
+                    'BASELINE': '🟢 BASELINE — Brain is calm, processing normally',
+                    'STIMULATED': '🔵 STIMULATED — Neural activity increasing from audio input',
+                    'STRESSED': '🟡 STRESSED — Excessive stimulation causing neural strain',
+                    'DAMAGED': '🟠 DAMAGED — Neurons are dying from overstimulation!',
+                    'CRITICAL': '🔴 CRITICAL — Severe brain damage! Neural collapse imminent!',
+                    'COOLDOWN': '🔷 COOLDOWN — Music stopped. Observing recovery...',
+                };
+                banner.textContent = phaseMessages[phase] || phase;
+                if (phase !== lastPhase && lastPhase) {
+                    addDamageEntry('phase-change', `Phase: ${lastPhase} → ${phase}`);
+                }
+                lastPhase = phase;
+            }
+
+            // Stats bars
+            const health = data.health || {};
+            const firingRate = health.firing_rate || 0;
+            updateBar('firingBar', 'firingValue', firingRate, `${(firingRate * 100).toFixed(0)}%`);
+            updateBar('arousalBar', 'arousalValue', data.arousal || 0, `${((data.arousal || 0) * 100).toFixed(0)}%`);
+
+            const dopNorm = ((data.dopamine || 0) + 2) / 4; // -2..+2 → 0..1
+            updateBar('dopamineBar', 'dopamineValue', dopNorm, (data.dopamine || 0).toFixed(2));
+            document.getElementById('dopamineValue').style.color =
+                (data.dopamine || 0) >= 0 ? 'var(--neon-green)' : 'var(--neon-red)';
+
+            updateBar('stressBar', 'stressValue', health.stress_level || 0,
+                `${((health.stress_level || 0) * 100).toFixed(0)}%`);
+            updateBar('coherenceBar', 'coherenceValue', health.coherence || 1,
+                `${((health.coherence || 1) * 100).toFixed(0)}%`);
+            updateBar('deadBar', 'deadValue', health.dead_pct || 0,
+                `${health.dead_count || 0}`);
+
+            // Audio spectrum
+            if (data.audio) {
+                updateSpectrum(data.audio);
+                updateBar('rmsBar', null, data.audio.rms || 0);
+                updateBar('onsetBar', null, data.audio.onset || 0);
+
+                const beatInd = document.getElementById('beatIndicator');
+                if (data.audio.is_beat) {
+                    beatInd.style.opacity = '1';
+                    beatInd.style.transform = 'scale(1.3)';
+                    // Pulse background
+                    document.getElementById('bgPulse').classList.add('active');
+                    setTimeout(() => {
+                        document.getElementById('bgPulse').classList.remove('active');
+                    }, 300);
+                } else {
+                    beatInd.style.opacity = '0.2';
+                    beatInd.style.transform = 'scale(1)';
+                }
+            }
+
+            // Populations
+            if (data.populations) {
+                updatePopulations(data.populations);
+            }
+
+            // Brain visualization
+            if (data.brain_state) {
+                updateBrainCanvas(data.brain_state, data.health);
+            }
+
+            // Fatigue map
+            if (data.fatigue_map) {
+                updateFatigueCanvas(data.fatigue_map, data.dead_map || []);
+            }
+
+            // Dopamine history
+            dopamineHistory.push(data.dopamine || 0);
+            if (dopamineHistory.length > 200) dopamineHistory.shift();
+            firingHistory.push(firingRate);
+            if (firingHistory.length > 200) firingHistory.shift();
+            updateDopamineCanvas();
+
+            // Meme
+            if (data.meme && data.meme !== lastMeme) {
+                updateMeme(data.meme, health);
+                lastMeme = data.meme;
+            }
+
+            // Check for new damage events
+            if (health.dead_count > 0 && data.step % 100 === 0) {
+                addDamageEntry('excitotoxicity',
+                    `⚡ ${health.dead_count} neurons dead (${(health.dead_pct * 100).toFixed(1)}%)`);
+            }
+        }
+
+        function updateBar(barId, valueId, ratio, text) {
+            const bar = document.getElementById(barId);
+            if (bar) bar.style.width = `${Math.min(ratio * 100, 100)}%`;
+            if (valueId) {
+                const val = document.getElementById(valueId);
+                if (val) val.textContent = text || '';
+            }
+        }
+
+        // =====================================================
+        // Brain Canvas — Neural Activity Heatmap
+        // =====================================================
+        function updateBrainCanvas(brainState, health) {
+            const canvas = document.getElementById('brainCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width, h = canvas.height;
+
+            // Update heatmap with decay
+            for (let i = 0; i < Math.min(brainState.length, brainHeatmap.length); i++) {
+                if (brainState[i] === 1) {
+                    brainHeatmap[i] = 1.0;
+                } else {
+                    brainHeatmap[i] *= 0.92;
+                }
+            }
+
+            // Clear
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+
+            // Draw neurons as a grid of circles
+            const cols = 25;
+            const rows = 20;
+            const cellW = w / cols;
+            const cellH = h / rows;
+            const dead = health ? (health.dead_pct || 0) : 0;
+
+            for (let i = 0; i < Math.min(cols * rows, brainHeatmap.length); i++) {
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                const cx = col * cellW + cellW / 2;
+                const cy = row * cellH + cellH / 2;
+                const heat = brainHeatmap[i];
+                const radius = 4 + heat * 6;
+
+                // Color based on activity
+                let r, g, b;
+                if (i < brainHeatmap.length && health && health.dead_pct > 0) {
+                    // Check if this neuron might be dead (approximate)
+                    const deadThreshold = i / brainHeatmap.length;
+                    if (deadThreshold < (health.dead_pct || 0) * 2 && heat < 0.01) {
+                        r = 40; g = 10; b = 10; // Dead neuron = dark red
+                    } else {
+                        // Inferno-like colormap
+                        r = Math.floor(heat * 255);
+                        g = Math.floor(heat * heat * 180);
+                        b = Math.floor((1 - heat) * 60 + heat * 200);
+                    }
+                } else {
+                    // Inferno colormap approximation
+                    if (heat < 0.25) {
+                        r = Math.floor(heat * 4 * 80);
+                        g = 0;
+                        b = Math.floor(heat * 4 * 120);
+                    } else if (heat < 0.5) {
+                        const t = (heat - 0.25) * 4;
+                        r = Math.floor(80 + t * 175);
+                        g = Math.floor(t * 50);
+                        b = Math.floor(120 - t * 80);
+                    } else if (heat < 0.75) {
+                        const t = (heat - 0.5) * 4;
+                        r = 255;
+                        g = Math.floor(50 + t * 150);
+                        b = Math.floor(40 - t * 40);
+                    } else {
+                        const t = (heat - 0.75) * 4;
+                        r = 255;
+                        g = Math.floor(200 + t * 55);
+                        b = Math.floor(t * 100);
+                    }
+                }
+
+                // Glow effect for active neurons
+                if (heat > 0.5) {
+                    ctx.beginPath();
+                    const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 2);
+                    gradient.addColorStop(0, `rgba(${r},${g},${b},0.4)`);
+                    gradient.addColorStop(1, 'transparent');
+                    ctx.fillStyle = gradient;
+                    ctx.arc(cx, cy, radius * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Neuron dot
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgb(${r},${g},${b})`;
+                ctx.fill();
+
+                // Bright center for highly active neurons
+                if (heat > 0.8) {
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 2, 0, Math.PI * 2);
+                    ctx.fillStyle = '#fff';
+                    ctx.fill();
+                }
+            }
+
+            // Draw brain outline (fly brain shape — mushroom body-like)
+            ctx.strokeStyle = '#1a2a4020';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.ellipse(w / 2, h / 2, w * 0.45, h * 0.42, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Labels
+            ctx.fillStyle = '#ffffff30';
+            ctx.font = '9px JetBrains Mono';
+            ctx.fillText('AUDITORY', 10, 14);
+            ctx.fillText('MOTOR', w - 55, 14);
+            ctx.fillText('MUSHROOM BODY', w / 2 - 45, h - 6);
+
+            // Fired count overlay
+            if (brainData) {
+                ctx.fillStyle = '#00f5ff80';
+                ctx.font = '11px JetBrains Mono';
+                ctx.fillText(`${brainData.fired_count || 0}/${brainData.total_neurons || 0} active`, 10, h - 6);
+            }
+        }
+
+        // =====================================================
+        // Audio Spectrum Visualization
+        // =====================================================
+        function updateSpectrum(audio) {
+            const canvas = document.getElementById('spectrumCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width, h = canvas.height;
+
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+
+            const bands = ['sub_bass', 'bass', 'low_mid', 'mid', 'high', 'ultra_high'];
+            const colors = ['#ff00aa', '#ff6a00', '#ffdd00', '#00ff88', '#00f5ff', '#aa44ff'];
+            const barWidth = w / bands.length - 8;
+
+            bands.forEach((band, i) => {
+                const val = audio[band] || 0;
+                const barH = val * (h - 20);
+                const x = i * (barWidth + 8) + 4;
+                const y = h - barH - 10;
+
+                // Gradient bar
+                const grad = ctx.createLinearGradient(x, h - 10, x, y);
+                grad.addColorStop(0, colors[i] + '80');
+                grad.addColorStop(0.5, colors[i]);
+                grad.addColorStop(1, colors[i] + '40');
+                ctx.fillStyle = grad;
+
+                // Rounded rect
+                const radius = 4;
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + barWidth - radius, y);
+                ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + radius);
+                ctx.lineTo(x + barWidth, h - 10);
+                ctx.lineTo(x, h - 10);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.fill();
+
+                // Glow effect
+                if (val > 0.5) {
+                    ctx.shadowColor = colors[i];
+                    ctx.shadowBlur = 15;
+                    ctx.fillStyle = colors[i] + '20';
+                    ctx.fillRect(x - 5, y - 5, barWidth + 10, barH + 10);
+                    ctx.shadowBlur = 0;
+                }
+
+                // Value label
+                ctx.fillStyle = '#ffffff80';
+                ctx.font = '9px JetBrains Mono';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${(val * 100).toFixed(0)}%`, x + barWidth / 2, y - 4);
+            });
+        }
+
+        // =====================================================
+        // Fatigue Heatmap Canvas
+        // =====================================================
+        function updateFatigueCanvas(fatigueMap, deadMap) {
+            const canvas = document.getElementById('fatigueCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width, h = canvas.height;
+
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+
+            const n = fatigueMap.length;
+            const pixelW = w / n;
+
+            for (let i = 0; i < n; i++) {
+                const fatigue = fatigueMap[i];
+                const isDead = deadMap[i] || false;
+                const x = i * pixelW;
+
+                if (isDead) {
+                    ctx.fillStyle = '#ff2244';
+                } else if (fatigue > 0.7) {
+                    ctx.fillStyle = `rgb(255, ${Math.floor((1 - fatigue) * 200)}, 0)`;
+                } else if (fatigue > 0.3) {
+                    ctx.fillStyle = `rgb(${Math.floor(fatigue * 2 * 255)}, ${Math.floor(fatigue * 255)}, 0)`;
+                } else {
+                    ctx.fillStyle = `rgb(0, ${Math.floor(fatigue * 3 * 100)}, ${Math.floor(fatigue * 3 * 60)})`;
+                }
+
+                ctx.fillRect(x, 0, Math.max(pixelW, 1), h);
+            }
+
+            // Legend
+            ctx.fillStyle = '#ffffff40';
+            ctx.font = '8px JetBrains Mono';
+            ctx.fillText('Healthy', 4, 10);
+            ctx.fillStyle = '#ff224480';
+            ctx.fillText('Dead', w - 30, 10);
+        }
+
+        // =====================================================
+        // Dopamine Sparkline
+        // =====================================================
+        function updateDopamineCanvas() {
+            const canvas = document.getElementById('dopamineCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width, h = canvas.height;
+
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+
+            // Zero line
+            const midY = h / 2;
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, midY);
+            ctx.lineTo(w, midY);
+            ctx.stroke();
+
+            if (dopamineHistory.length < 2) return;
+
+            // Draw dopamine line
+            ctx.beginPath();
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < dopamineHistory.length; i++) {
+                const x = (i / dopamineHistory.length) * w;
+                const val = dopamineHistory[i];
+                const y = midY - (val / 2) * (h / 2); // -2..+2 mapped to canvas
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Fill under curve
+            ctx.lineTo(w, midY);
+            ctx.lineTo(0, midY);
+            ctx.closePath();
+            ctx.fillStyle = '#00ff8810';
+            ctx.fill();
+
+            // Labels
+            ctx.fillStyle = '#ffffff30';
+            ctx.font = '8px JetBrains Mono';
+            ctx.fillText('+2.0', 4, 10);
+            ctx.fillText('-2.0', 4, h - 4);
+        }
+
+        // =====================================================
+        // Population Bars
+        // =====================================================
+        const POP_COLORS = {
+            escape: '#ff2244',
+            freeze: '#4488ff',
+            wings: '#00ff88',
+            aggression: '#ff6a00',
+            avoidance: '#ffdd00',
+            approach: '#00f5ff',
+        };
+
+        const POP_LABELS = {
+            escape: '🏃 Escape',
+            freeze: '🧊 Freeze',
+            wings: '🪽 Wings',
+            aggression: '⚔️ Aggression',
+            avoidance: '🛡️ Avoidance',
+            approach: '🎯 Approach',
+        };
+
+        function updatePopulations(pops) {
+            const grid = document.getElementById('popGrid');
+
+            if (grid.children.length === 0) {
+                // Initialize
+                for (const [name, val] of Object.entries(pops)) {
+                    const item = document.createElement('div');
+                    item.className = 'pop-item';
+                    item.innerHTML = `
+                        <div class="pop-name">${POP_LABELS[name] || name}</div>
+                        <div class="pop-bar-bg">
+                            <div class="pop-bar-fill" id="pop-${name}"
+                                 style="width: ${val * 100}%; background: ${POP_COLORS[name] || '#888'};"></div>
+                        </div>
+                    `;
+                    grid.appendChild(item);
+                }
+            } else {
+                // Update
+                for (const [name, val] of Object.entries(pops)) {
+                    const bar = document.getElementById(`pop-${name}`);
+                    if (bar) bar.style.width = `${val * 100}%`;
+                }
+            }
+        }
+
+        // =====================================================
+        // Meme Reactions
+        // =====================================================
+        const MEME_DATA = {
+            neutral:    { emoji: '🪰', label: 'NEUTRAL', color: 'var(--neon-cyan)',
+                          sub: 'The fly is chill. No strong feelings.' },
+            vibing:     { emoji: '😎', label: 'VIBING', color: 'var(--neon-green)',
+                          sub: 'The fly is actually enjoying this!' },
+            hype:       { emoji: '🤩', label: 'HYPED', color: 'var(--neon-yellow)',
+                          sub: 'Neural arousal spiking — the beat hits different for a fly!' },
+            thinking:   { emoji: '🤔', label: 'PROCESSING', color: 'var(--neon-blue)',
+                          sub: 'The fly brain is trying to make sense of these frequencies...' },
+            shocked:    { emoji: '😲', label: 'SHOCKED', color: 'var(--neon-orange)',
+                          sub: 'Massive neural activation! The fly has never heard anything like this!' },
+            fire:       { emoji: '🔥', label: 'BRAIN ON FIRE', color: '#ff4400',
+                          sub: 'Neurons are lighting up everywhere — sensory overload!' },
+            dizzy:      { emoji: '😵‍💫', label: 'OVERWHELMED', color: 'var(--neon-yellow)',
+                          sub: 'Too much stimulation! The fly is getting dizzy!' },
+            sweating:   { emoji: '😰', label: 'STRESSED', color: 'var(--neon-orange)',
+                          sub: 'Cortisol equivalent spiking — the fly wants this to stop!' },
+            screaming:  { emoji: '😱', label: 'EXTREME STRESS', color: 'var(--neon-red)',
+                          sub: 'FIGHT OR FLIGHT ACTIVATED! Escape neurons firing!' },
+            crying:     { emoji: '😭', label: 'NEURONS DYING', color: 'var(--neon-red)',
+                          sub: 'Excitotoxicity detected — neurons are being killed by the bass!' },
+            explosion:  { emoji: '🤯', label: 'BRAIN MELTING', color: '#ff0044',
+                          sub: 'Severe neural damage! The connectome is breaking apart!' },
+            skull:      { emoji: '💀', label: 'BRAIN IS COOKED', color: '#ff0000',
+                          sub: 'Critical failure. The fly brain is destroyed. RIP.' },
+            pain:       { emoji: '😫', label: 'IN PAIN', color: 'var(--neon-red)',
+                          sub: 'Negative dopamine — the fly is NOT having a good time.' },
+            sleeping:   { emoji: '😴', label: 'UNRESPONSIVE', color: 'var(--text-dim)',
+                          sub: 'Neurons have gone silent. Neural fatigue or spreading depression.' },
+        };
+
+        function updateMeme(memeId, health) {
+            const meme = MEME_DATA[memeId] || MEME_DATA.neutral;
+            const emojiEl = document.getElementById('memeEmoji');
+            const labelEl = document.getElementById('memeLabel');
+            const subEl = document.getElementById('memeSublabel');
+
+            emojiEl.textContent = meme.emoji;
+            labelEl.textContent = meme.label;
+            labelEl.style.color = meme.color;
+            subEl.textContent = meme.sub;
+
+            // Animation
+            emojiEl.classList.remove('shake', 'bounce');
+            void emojiEl.offsetWidth; // Trigger reflow
+            if (['screaming', 'explosion', 'skull', 'crying'].includes(memeId)) {
+                emojiEl.classList.add('shake');
+            } else {
+                emojiEl.classList.add('bounce');
+            }
+
+            // Update card glow based on severity
+            const card = document.getElementById('memeCard');
+            if (['skull', 'explosion', 'screaming'].includes(memeId)) {
+                card.style.borderColor = '#ff224450';
+                card.style.boxShadow = '0 0 30px #ff224420';
+            } else if (['crying', 'sweating', 'pain'].includes(memeId)) {
+                card.style.borderColor = '#ff6a0040';
+                card.style.boxShadow = '0 0 20px #ff6a0015';
+            } else if (['vibing', 'hype'].includes(memeId)) {
+                card.style.borderColor = '#00ff8840';
+                card.style.boxShadow = '0 0 20px #00ff8815';
+            } else {
+                card.style.borderColor = 'var(--border)';
+                card.style.boxShadow = 'none';
+            }
+        }
+
+        // =====================================================
+        // Damage Log
+        // =====================================================
+        function addDamageEntry(type, message) {
+            const log = document.getElementById('damageLog');
+            const entry = document.createElement('div');
+            entry.className = `damage-entry ${type}`;
+
+            const time = brainData ? brainData.elapsed : 0;
+            const timeStr = time ? `[${time.toFixed(1)}s]` : '[--]';
+            entry.innerHTML = `<span>${timeStr}</span> <span>${message}</span>`;
+
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+
+            // Keep only last 50 entries
+            while (log.children.length > 50) {
+                log.removeChild(log.firstChild);
+            }
+        }
+
+        // =====================================================
+        // Experiment Complete
+        // =====================================================
+        function showComplete(data) {
+            const overlay = document.getElementById('completeOverlay');
+            overlay.classList.add('visible');
+
+            const summary = data.summary || {};
+            const deadPct = (summary.dead_pct || 0) * 100;
+
+            let emoji, verdict, detail;
+
+            if (deadPct > 20) {
+                emoji = '💀';
+                verdict = 'BRAIN DESTROYED';
+                detail = `The fly's brain was COOKED by AIZO.\n${summary.dead_neurons} out of ${brainData?.total_neurons || '???'} neurons died.\nThat's ${deadPct.toFixed(1)}% neural death from excitotoxicity.\nVerdict: AIZO is lethal to fruit flies.`;
+            } else if (deadPct > 5) {
+                emoji = '🤯';
+                verdict = 'SIGNIFICANT DAMAGE';
+                detail = `AIZO caused real brain damage.\n${summary.dead_neurons} neurons were killed (${deadPct.toFixed(1)}%).\nThe fly survived but with reduced cognitive capacity.`;
+            } else if (deadPct > 1) {
+                emoji = '😵‍💫';
+                verdict = 'MILD DAMAGE';
+                detail = `The fly took some hits but mostly survived.\n${summary.dead_neurons} neurons lost (${deadPct.toFixed(1)}%).\nA bit brain damaged but still functional.`;
+            } else {
+                emoji = '😎';
+                verdict = 'BRAIN SURVIVED';
+                detail = `The fly's brain handled AIZO without major damage.\nOnly ${summary.dead_neurons} neurons lost.\nEither the fly vibed with it, or AIZO isn't as deadly as we thought.`;
+            }
+
+            document.getElementById('verdictEmoji').textContent = emoji;
+            document.getElementById('verdictText').textContent = verdict;
+            document.getElementById('verdictText').style.color =
+                deadPct > 20 ? 'var(--neon-red)' :
+                deadPct > 5 ? 'var(--neon-orange)' :
+                deadPct > 1 ? 'var(--neon-yellow)' : 'var(--neon-green)';
+            document.getElementById('verdictDetail').textContent = detail;
+        }
+
+        // =====================================================
+        // Initialize
+        // =====================================================
+        connectWS();
+
+        // Initial brain canvas
+        updateBrainCanvas([], {});
+        updateDopamineCanvas();
+    </script>
+</body>
+</html>

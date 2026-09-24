@@ -9,3 +9,4 @@ matplotlib
 yt-dlp
 pygame-ce
 librosa
+soundfile
