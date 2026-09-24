@@ -872,7 +872,7 @@
             }
 
             // Clear with card background for seamless look
-            ctx.fillStyle = 'var(--bg-card)';
+            ctx.fillStyle = '#18181b'; // Hardcoded zinc-900 to ensure canvas compatibility
             ctx.fillRect(0, 0, w, h);
 
             // Draw connecting lines between highly active nearby neurons
@@ -936,7 +936,7 @@
             ctx.stroke();
 
             // Labels
-            ctx.fillStyle = 'var(--text-dim)';
+            ctx.fillStyle = '#71717a'; // zinc-500
             ctx.font = '10px JetBrains Mono';
             ctx.fillText('AUDITORY', 14, 18);
             ctx.fillText('MOTOR', w - 50, 18);
@@ -944,7 +944,7 @@
 
             // Fired count overlay
             if (brainData) {
-                ctx.fillStyle = 'var(--neon-cyan)';
+                ctx.fillStyle = '#38bdf8'; // neon-cyan
                 ctx.font = '12px JetBrains Mono';
                 ctx.fillText(`${brainData.fired_count || 0}/${brainData.total_neurons || 0} active`, 14, h - 10);
             }
@@ -958,17 +958,19 @@
             const ctx = canvas.getContext('2d');
             const w = canvas.width, h = canvas.height;
 
-            ctx.fillStyle = 'var(--bg-card)';
+            ctx.fillStyle = '#18181b';
             ctx.fillRect(0, 0, w, h);
 
             const bands = ['sub_bass', 'bass', 'low_mid', 'mid', 'high', 'ultra_high'];
-            const colors = ['#e879f9', '#fb923c', '#facc15', '#34d399', '#38bdf8', '#c084fc'];
-            const barWidth = w / bands.length - 8;
+            // Darker, more intense colors for audio spectrum to look better
+            const colors = ['#d946ef', '#f97316', '#eab308', '#10b981', '#0ea5e9', '#a855f7'];
+            const barWidth = w / bands.length - 12; // slightly more gap
 
             bands.forEach((band, i) => {
                 const val = audio[band] || 0;
-                const barH = val * (h - 20);
-                const x = i * (barWidth + 8) + 4;
+                // Cap the height so it doesn't cover text (max height = h - 30)
+                const barH = val * (h - 30); 
+                const x = i * (barWidth + 12) + 6;
                 const y = h - barH - 10;
 
                 // Flat rounded bar
@@ -984,8 +986,8 @@
                 ctx.quadraticCurveTo(x, y, x + radius, y);
                 ctx.fill();
 
-                // Value label
-                ctx.fillStyle = 'var(--text-dim)';
+                // Value label placed above the bar
+                ctx.fillStyle = '#a1a1aa'; // zinc-400
                 ctx.font = '10px JetBrains Mono';
                 ctx.textAlign = 'center';
                 ctx.fillText(`${(val * 100).toFixed(0)}%`, x + barWidth / 2, y - 6);
@@ -1157,12 +1159,14 @@
             const labelEl = document.getElementById('memeLabel');
             const subEl = document.getElementById('memeSublabel');
 
-            // Map states to user uploaded images
-            const normalStates = ['neutral', 'vibing', 'hype', 'thinking', 'sleeping'];
-            if (normalStates.includes(memeId)) {
+            const deadPct = health ? (health.dead_pct || 0) * 100 : 0;
+
+            if (deadPct < 10) {
+                imgEl.src = '/memes/image3.png';
+            } else if (deadPct < 20) {
                 imgEl.src = '/memes/angry_bird.png';
             } else {
-                imgEl.src = '/memes/peak_crying.png'; // Overstimulated / Brain melting
+                imgEl.src = '/memes/peak_crying.png';
             }
 
             labelEl.textContent = meme.label;
