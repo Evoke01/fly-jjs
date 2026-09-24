@@ -528,7 +528,7 @@
     <header class="header">
         <div class="header-left">
             <div class="logo">FLYBRAIN</div>
-            <span class="experiment-tag">🎵 AIZO Experiment</span>
+            <span class="experiment-tag"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> AIZO Experiment</span>
         </div>
         <div class="header-right">
             <div class="status-badge" id="statusBadge">
@@ -548,7 +548,7 @@
 
         <!-- BRAIN VISUALIZATION -->
         <div class="card brain-card">
-            <div class="card-title"><span class="icon">🧠</span> Neural Activity — Live Connectome</div>
+            <div class="card-title"><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg></span> Neural Activity — Live Connectome</div>
             <div class="brain-container">
                 <canvas id="brainCanvas" width="560" height="320"></canvas>
                 <div class="brain-stats">
@@ -616,7 +616,7 @@
 
         <!-- AUDIO SPECTRUM -->
         <div class="card">
-            <div class="card-title"><span class="icon">🎵</span> Audio Frequency Spectrum</div>
+            <div class="card-title"><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span> Audio Frequency Spectrum</div>
             <canvas id="spectrumCanvas" width="700" height="120"></canvas>
             <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 10px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">
                 <span>Sub-Bass</span>
@@ -627,7 +627,7 @@
                 <span>Ultra High</span>
             </div>
             <div style="margin-top: 16px;">
-                <div class="card-title" style="margin-bottom: 8px;"><span class="icon">📊</span> Audio Metrics</div>
+                <div class="card-title" style="margin-bottom: 8px;"><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span> Audio Metrics</div>
                 <div style="display: flex; gap: 16px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 120px;">
                         <div class="stat-label">Loudness (RMS)</div>
@@ -643,7 +643,7 @@
                     </div>
                     <div style="flex: 1; min-width: 120px; text-align: center;">
                         <div class="stat-label">Beat</div>
-                        <div id="beatIndicator" style="font-size: 24px; margin-top: 4px; opacity: 0.2; transition: opacity 0.1s;">🥁</div>
+                        <div id="beatIndicator" style="font-size: 24px; margin-top: 4px; opacity: 0.2; transition: opacity 0.1s;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><circle cx="12" cy="12" r="10"/><path d="M12 2v20"/><path d="m2 12 20 0"/></svg></div>
                     </div>
                 </div>
             </div>
@@ -651,8 +651,8 @@
 
         <!-- MEME REACTION -->
         <div class="card meme-card" id="memeCard">
-            <div class="card-title"><span class="icon">😂</span> Fly Emotional State</div>
-            <div class="meme-emoji" id="memeEmoji" style="display: none;">🪰</div>
+            <div class="card-title"><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></span> Fly Emotional State</div>
+            <div class="meme-emoji" id="memeEmoji" style="display: none;"></div>
             <img class="meme-img" id="memeImg" src="/memes/angry_bird.png" style="display: block; width: 100%; max-width: 250px; margin: 20px auto; border-radius: 12px; box-shadow: 0 0 15px rgba(0, 255, 136, 0.3); transition: all 0.3s ease;" alt="Fly Emotion">
             <div class="meme-label" id="memeLabel" style="color: var(--neon-cyan);">WAITING</div>
             <div class="meme-sublabel" id="memeSublabel">The fly hasn't heard anything yet...</div>
@@ -660,7 +660,7 @@
 
         <!-- POPULATION ACTIVITY -->
         <div class="card">
-            <div class="card-title"><span class="icon">⚡</span> Neural Population Responses</div>
+            <div class="card-title"><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span> Neural Population Responses</div>
             <div class="pop-grid" id="popGrid">
                 <!-- Filled dynamically -->
             </div>
@@ -668,10 +668,10 @@
 
         <!-- DAMAGE LOG -->
         <div class="card">
-            <div class="card-title"><span class="icon">💀</span> Damage Event Log</div>
+            <div class="card-title"><span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><path d="M8 20v2h8v-2"/><path d="m12.5 17-.5-1-.5 1h1z"/><path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20"/></svg></span> Damage Event Log</div>
             <div class="damage-log" id="damageLog">
                 <div class="damage-entry info">
-                    <span>⏳</span> <span>Waiting for experiment to begin...</span>
+                    <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> <span>Waiting for experiment to begin...</span>
                 </div>
             </div>
         </div>
@@ -710,7 +710,7 @@
                     document.getElementById('statusBadge').style.borderColor = '#00ff8850';
                     document.getElementById('statusBadge').style.background = '#00ff8810';
                     document.querySelector('.status-dot').style.background = 'var(--neon-green)';
-                    addDamageEntry('info', '🔗 Connected to fly brain');
+                    addDamageEntry('info', '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Connected to fly brain');
                 }
 
                 // Only update if new data (avoid reprocessing same frame)
@@ -765,14 +765,14 @@
             if (phase !== lastPhase) {
                 banner.className = `phase-banner phase-${phase}`;
                 const phaseMessages = {
-                    'BASELINE': '🟢 BASELINE — Brain is calm, processing normally',
-                    'STIMULATED': '🔵 STIMULATED — Neural activity increasing from audio input',
-                    'STRESSED': '🟡 STRESSED — Excessive stimulation causing neural strain',
-                    'DAMAGED': '🟠 DAMAGED — Neurons are dying from overstimulation!',
-                    'CRITICAL': '🔴 CRITICAL — Severe brain damage! Neural collapse imminent!',
-                    'COOLDOWN': '🔷 COOLDOWN — Music stopped. Observing recovery...',
+                    'BASELINE': '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="var(--neon-green)" stroke="var(--neon-green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/></svg> BASELINE — Brain is calm, processing normally',
+                    'STIMULATED': '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="var(--neon-blue)" stroke="var(--neon-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/></svg> STIMULATED — Neural activity increasing from audio input',
+                    'STRESSED': '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="var(--neon-yellow)" stroke="var(--neon-yellow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/></svg> STRESSED — Excessive stimulation causing neural strain',
+                    'DAMAGED': '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="var(--neon-orange)" stroke="var(--neon-orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/></svg> DAMAGED — Neurons are dying from overstimulation!',
+                    'CRITICAL': '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="var(--neon-red)" stroke="var(--neon-red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/></svg> CRITICAL — Severe brain damage! Neural collapse imminent!',
+                    'COOLDOWN': '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="var(--neon-cyan)" stroke="var(--neon-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><polygon points="12 2 22 12 12 22 2 12 12 2"/></svg> COOLDOWN — Music stopped. Observing recovery...',
                 };
-                banner.textContent = phaseMessages[phase] || phase;
+                banner.innerHTML = phaseMessages[phase] || phase;
                 if (phase !== lastPhase && lastPhase) {
                     addDamageEntry('phase-change', `Phase: ${lastPhase} → ${phase}`);
                 }
@@ -1142,12 +1142,12 @@
         };
 
         const POP_LABELS = {
-            escape: '🏃 Escape',
-            freeze: '🧊 Freeze',
-            wings: '🪽 Wings',
-            aggression: '⚔️ Aggression',
-            avoidance: '🛡️ Avoidance',
-            approach: '🎯 Approach',
+            escape: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><path d="M5 11l4-7"/><path d="M19 19l-4-7 1-4 4 1"/><path d="M14 4h.01"/><path d="M13 14l-3-4-2 3-3-1"/></svg>Escape',
+            freeze: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>Freeze',
+            wings: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>Wings',
+            aggression: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><path d="M14.5 4h5v5"/><path d="m19.5 4-15 15"/></svg>Aggression',
+            avoidance: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Avoidance',
+            approach: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Approach',
         };
 
         function updatePopulations(pops) {
