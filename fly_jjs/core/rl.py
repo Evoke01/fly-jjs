@@ -6,6 +6,7 @@ import mss
 import cv2
 from collections import deque
 from flybrain import FlyBrain, FeatureDetectors
+from fly_jjs.core.config import ConfigManager, RESOLUTION_PRESETS
 
 ACTION_NAMES = [
     "forward", "left", "back", "right",
@@ -40,6 +41,7 @@ BASE_THRESHOLDS = {
     "sprint": 0.28, "awaken": 0.35,
 }
 
+
 def get_brain_components():
     global _brain, _fd, _dns, _dans, _retina_r, _retina_b, _populations
     if _brain is None:
@@ -60,31 +62,18 @@ def get_brain_components():
         _retina_r = vis[:64]
         _retina_b = vis[64:128]
 
-        fwd_pop     = _dns[0:25]
-        left_pop    = _dns[25:45]
-        back_pop    = _dns[45:60]
-        right_pop   = _dns[60:80]
-        melee_pop   = _dns[80:110]
-        skill1_pop  = _dns[110:125]
-        skill2_pop  = _dns[125:140]
-        skill3_pop  = _dns[140:155]
-        skill4_pop  = _dns[155:170]
-        dash_pop    = _dns[170:190]
-        block_pop   = _dns[190:210]
-        special_pop = _dns[210:230]
-        sprint_pop  = _dns[230:250]
-        awaken_pop  = _dns[250:270]
-
+        pop_size = len(_dns) // NUM_ACTIONS
         _populations = [
-            fwd_pop, left_pop, back_pop, right_pop,
-            melee_pop, skill1_pop, skill2_pop, skill3_pop, skill4_pop,
-            dash_pop, block_pop, special_pop, sprint_pop, awaken_pop,
+            _dns[i * pop_size: (i + 1) * pop_size]
+            for i in range(NUM_ACTIONS)
         ]
-        print(f"[Brain] {len(_dns)} descending neurons loaded successfully")
+        print(f"[Brain] {len(_dns)} descending neurons assigned across {NUM_ACTIONS} motor populations")
+
     return _brain, _fd, _dns, _dans, _retina_r, _retina_b, _populations
 
 
 def detect_monitor():
+    """Detect game window or fallback to default coordinates."""
     print("\n[System] Searching for game window...")
     try:
         import pygetwindow as gw
@@ -92,7 +81,7 @@ def detect_monitor():
         game_windows = [
             w for w in windows
             if any(t in w.title.lower() for t in ["roblox", "sober", "jujutsu"])
-            and w.width > 200 and w.height > 200
+            and w.width > 100 and w.height > 100
         ]
         if game_windows:
             game_windows.sort(key=lambda w: w.left)
@@ -107,238 +96,150 @@ def detect_monitor():
             return monitor
     except Exception:
         pass
-    print("[System] Game window not found. Using center of screen fallback.")
+    print("[System] Game window not found. Using screen bounds fallback.")
     return {"top": 240, "left": 560, "width": 800, "height": 600}
 
 
 def create_backup_of_weights():
+    """Create a timestamped backup of current fly_weights.npy if it exists."""
     if os.path.exists(WEIGHTS_PATH):
-        backup_dir = os.path.join(USER_DIR, "backups")
-        os.makedirs(backup_dir, exist_ok=True)
+        backups_dir = os.path.join(USER_DIR, "backups")
+        os.makedirs(backups_dir, exist_ok=True)
         timestamp = time.strftime("%Y%m%d_%H%M%S")
-        backup_path = os.path.join(backup_dir, f"fly_weights_{timestamp}.npy")
+        backup_file = f"fly_weights_backup_{timestamp}.npy"
+        backup_path = os.path.join(backups_dir, backup_file)
         try:
             shutil.copy2(WEIGHTS_PATH, backup_path)
-            print(f"[Backup] Saved automatic weight backup to {backup_path}")
-            return backup_path
+            print(f"[Backup] Created automatic backup at {backup_path}")
         except Exception as e:
-            print(f"[Backup] Note: Could not save backup ({e})")
-    return None
+            print(f"[Backup] Failed to create backup: {e}")
 
 
 class RewardSystem:
-    HIT_COOLDOWN   = 15
-    TAKEN_COOLDOWN = 12
-    KILL_COOLDOWN  = 60
-    BLOCK_COOLDOWN = 12
-    DODGE_COOLDOWN = 10
-
     def __init__(self):
-        self.threat_history = deque(maxlen=30)
-        self.idle_counter = 0
-        self.last_events = deque(maxlen=5)
+        self.prev_our_health = None
+        self.prev_enemy_health = None
+        self.prev_motion = 0.0
         self.total_hits_landed = 0
         self.total_hits_taken = 0
         self.total_kills = 0
 
-        self.cd_hit = 0
-        self.cd_taken = 0
-        self.cd_kill = 0
-        self.cd_block = 0
-        self.cd_dodge = 0
-
-        self.our_health_history = deque(maxlen=10)
-        self.enemy_health_history = deque(maxlen=10)
-        self.our_prev_health = 1.0
-        self.enemy_prev_health = 1.0
-
-        self.enemy_visible_frames = 0
-        self.enemy_gone_frames = 0
-
     def _sample_our_health(self, img):
-        h, w = img.shape[:2]
-        y1, y2 = int(h * 0.875), int(h * 0.905)
-        x1, x2 = int(w * 0.38), int(w * 0.60)
-
-        if y2 <= y1 or x2 <= x1:
-            return self.our_prev_health
-
-        roi = img[y1:y2, x1:x2, :3]
-        g, r, b = roi[:, :, 1].astype(float), roi[:, :, 2].astype(float), roi[:, :, 0].astype(float)
-        green_mask = (g > 80) & (g > r * 1.2) & (g > b * 1.2)
-
-        bar_width = x2 - x1
-        col_green = np.any(green_mask, axis=0)
-        if np.any(col_green):
-            rightmost = np.max(np.where(col_green))
-            health = (rightmost + 1) / bar_width
-        else:
-            health = 0.0
-
-        return float(np.clip(health, 0.0, 1.0))
+        h, w, _ = img.shape
+        bar_roi = img[int(h * 0.88):int(h * 0.94), int(w * 0.05):int(w * 0.35)]
+        if bar_roi.size == 0:
+            return 1.0
+        green_channel = bar_roi[:, :, 1].astype(float)
+        red_channel = bar_roi[:, :, 2].astype(float)
+        green_mask = (green_channel > 100) & (green_channel > red_channel * 1.2)
+        return float(np.mean(green_mask))
 
     def _sample_enemy_health(self, img):
-        h, w = img.shape[:2]
-        y1, y2 = int(h * 0.25), int(h * 0.55)
-        x1, x2 = int(w * 0.15), int(w * 0.85)
-
-        if y2 <= y1 or x2 <= x1:
-            return self.enemy_prev_health, False
-
-        roi = img[y1:y2, x1:x2, :3]
-        g, r, b = roi[:, :, 1].astype(float), roi[:, :, 2].astype(float), roi[:, :, 0].astype(float)
-        green_mask = (g > 100) & (g > r * 1.5) & (g > b * 1.5)
-
-        best_row, best_start, best_end, best_len = -1, 0, 0, 0
-        for row_idx in range(0, green_mask.shape[0], 2):
-            row = green_mask[row_idx, :]
-            if not np.any(row):
-                continue
-            changes = np.diff(row.astype(int))
-            starts = np.where(changes == 1)[0] + 1
-            ends = np.where(changes == -1)[0] + 1
-            if row[0]:
-                starts = np.concatenate([[0], starts])
-            if row[-1]:
-                ends = np.concatenate([ends, [len(row)]])
-
-            if len(starts) == 0 or len(ends) == 0:
-                continue
-
-            for s, e in zip(starts, ends):
-                run_len = e - s
-                if 15 < run_len < (x2 - x1) * 0.5 and run_len > best_len:
-                    best_len, best_row, best_start, best_end = run_len, row_idx, s, e
-
-        if best_len < 15:
-            return 0.0, False
-
-        row_pixels = roi[best_row, :, :]
-        row_g, row_r, row_b = row_pixels[:, 1].astype(float), row_pixels[:, 2].astype(float), row_pixels[:, 0].astype(float)
-        gray_mask = ((row_g > 40) & (row_g < 120) & (np.abs(row_g - row_r) < 30) & (np.abs(row_g - row_b) < 30))
-
-        bar_total_end = best_end
-        for px in range(best_end, min(best_end + 200, len(gray_mask))):
-            if gray_mask[px]:
-                bar_total_end = px
-            elif bar_total_end > best_end:
-                break
-
-        total_width = max(bar_total_end - best_start, best_len)
-        health = best_len / total_width if total_width > 0 else 1.0
-        return float(np.clip(health, 0.0, 1.0)), True
+        h, w, _ = img.shape
+        bar_roi = img[int(h * 0.05):int(h * 0.15), int(w * 0.30):int(w * 0.70)]
+        if bar_roi.size == 0:
+            return 1.0
+        red_channel = bar_roi[:, :, 2].astype(float)
+        green_channel = bar_roi[:, :, 1].astype(float)
+        red_mask = (red_channel > 120) & (red_channel > green_channel * 1.5)
+        return float(np.mean(red_mask))
 
     def _detect_white_vfx(self, img):
-        h, w = img.shape[:2]
-        cx, cy = w // 2, h // 2
-        sz = 80
-        roi = img[max(0, cy - sz):cy + sz, max(0, cx - sz):cx + sz, :3]
-        r, g, b = roi[:, :, 2].astype(float), roi[:, :, 1].astype(float), roi[:, :, 0].astype(float)
-        white = (r > 200) & (g > 200) & (b > 200)
-        return float(np.mean(white)) > 0.03
+        gray = cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
+        bright = (gray > 235).astype(float)
+        return float(np.mean(bright))
 
     def compute(self, threat, motion, actions, img):
         reward = 0.0
         events = []
 
-        self.threat_history.append(threat)
+        our_hp = self._sample_our_health(img)
+        enemy_hp = self._sample_enemy_health(img)
 
-        self.cd_hit   = max(0, self.cd_hit - 1)
-        self.cd_taken = max(0, self.cd_taken - 1)
-        self.cd_kill  = max(0, self.cd_kill - 1)
-        self.cd_block = max(0, self.cd_block - 1)
-        self.cd_dodge = max(0, self.cd_dodge - 1)
+        if self.prev_our_health is not None:
+            hp_loss = self.prev_our_health - our_hp
+            if hp_loss > 0.05:
+                penalty = -1.5
+                reward += penalty
+                self.total_hits_taken += 1
+                events.append(f"TAKEN DAMAGE ({penalty:+.1f})")
 
-        attacked = "melee" in actions
-        skill_used = any(a in actions for a in ["skill1", "skill2", "skill3", "skill4", "special"])
+        if self.prev_enemy_health is not None:
+            enemy_hp_loss = self.prev_enemy_health - enemy_hp
+            if enemy_hp_loss > 0.05:
+                bonus = +2.0
+                reward += bonus
+                self.total_hits_landed += 1
+                events.append(f"HIT ENEMY ({bonus:+.1f})")
 
-        our_health = self._sample_our_health(img)
-        enemy_health, enemy_visible = self._sample_enemy_health(img)
-        has_white_vfx = self._detect_white_vfx(img)
+            if self.prev_enemy_health > 0.1 and enemy_hp < 0.02:
+                kill_bonus = +5.0
+                reward += kill_bonus
+                self.total_kills += 1
+                events.append(f"KILLED OPPONENT ({kill_bonus:+.1f})")
 
-        self.our_health_history.append(our_health)
-        self.enemy_health_history.append(enemy_health)
+        self.prev_our_health = our_hp
+        self.prev_enemy_health = enemy_hp
 
-        enemy_health_drop = self.enemy_prev_health - enemy_health
-        if (self.cd_hit == 0 and enemy_visible and enemy_health_drop > 0.02 and (attacked or skill_used or has_white_vfx)):
-            if skill_used:
-                reward += 1.5
-                events.append(("SKILL HIT", +1.5))
-            else:
-                reward += 1.0
-                events.append(("HIT LANDED", +1.0))
-            self.total_hits_landed += 1
-            self.cd_hit = self.HIT_COOLDOWN
-        elif (self.cd_hit == 0 and not enemy_visible and has_white_vfx and (attacked or skill_used)):
+        if threat > 0.4 and "melee" in actions:
+            reward += 0.3
+            events.append("AGGRO MELEE (+0.3)")
+
+        if threat > 0.6 and "block" in actions:
+            reward += 0.4
+            events.append("TIMELY BLOCK (+0.4)")
+
+        if threat > 0.7 and "dash" in actions:
+            reward += 0.3
+            events.append("EVASIVE DASH (+0.3)")
+
+        if threat < 0.2 and "forward" in actions:
+            reward += 0.15
+
+        if threat < 0.15 and ("melee" in actions or "skill1" in actions):
+            reward -= 0.1
+
+        vfx_intensity = self._detect_white_vfx(img)
+        if vfx_intensity > 0.15 and "block" in actions:
             reward += 0.5
-            events.append(("HIT (VFX)", +0.5))
-            self.total_hits_landed += 1
-            self.cd_hit = self.HIT_COOLDOWN
+            events.append("VFX BLOCK (+0.5)")
 
-        our_health_drop = self.our_prev_health - our_health
-        if self.cd_taken == 0 and our_health_drop > 0.02:
-            pain = min(our_health_drop * 10.0, 2.0)
-            reward -= pain
-            events.append(("GOT HIT", -pain))
-            self.total_hits_taken += 1
-            self.cd_taken = self.TAKEN_COOLDOWN
+        if len(actions) == 0:
+            reward -= 0.05
 
-        if self.cd_block == 0 and "block" in actions and motion > 0.04:
-            if our_health_drop < 0.01:
-                reward += 0.5
-                events.append(("BLOCKED!", +0.5))
-                self.cd_block = self.BLOCK_COOLDOWN
-
-        if enemy_visible:
-            self.enemy_visible_frames += 1
-            self.enemy_gone_frames = 0
-        else:
-            self.enemy_gone_frames += 1
-
-        if (self.cd_kill == 0 and self.enemy_visible_frames >= 10 and self.enemy_gone_frames >= 8 and self.enemy_prev_health < 0.3):
-            reward += 5.0
-            events.append(("*** KILL ***", +5.0))
-            self.total_kills += 1
-            self.cd_kill = self.KILL_COOLDOWN
-            self.enemy_visible_frames = 0
-
-        if self.cd_dodge == 0 and motion > 0.06 and "dash" in actions:
-            if our_health_drop < 0.01:
-                reward += 0.3
-                events.append(("DODGED", +0.3))
-                self.cd_dodge = self.DODGE_COOLDOWN
-
-        moving_only = actions <= {"forward", "back", "left", "right"}
-        if len(actions) == 0 or moving_only:
-            self.idle_counter += 1
-            if self.idle_counter > 40:
-                reward -= 0.2
-                events.append(("IDLE", -0.2))
-        else:
-            self.idle_counter = 0
-
-        self.our_prev_health = our_health
-        if enemy_visible:
-            self.enemy_prev_health = enemy_health
-
-        for e in events:
-            self.last_events.append(e)
         return reward, events
+
+
+class PatternRecognizer:
+    """Tracks sliding windows of movement and opponent positions to predict sequences."""
+    def __init__(self, history_len=10):
+        self.history = deque(maxlen=history_len)
+
+    def update(self, opp_dx, threat, motion):
+        self.history.append((opp_dx, threat, motion))
+
+    def predict_burst(self):
+        if len(self.history) < 3:
+            return False, 0.0
+        recent_motions = [h[2] for h in self.history]
+        recent_threats = [h[1] for h in self.history]
+
+        motion_spike = np.mean(recent_motions[-3:]) > 0.15
+        threat_rising = recent_threats[-1] > recent_threats[-3] + 0.1
+        return (motion_spike and threat_rising), float(np.mean(recent_motions))
 
 
 class FlyLearner:
     def __init__(self, num_dns, num_actions, lr=0.001):
+        self.lr = lr
         self.num_dns = num_dns
         self.num_actions = num_actions
-        self.lr = lr
-
         self.action_weights = np.zeros((num_dns, num_actions), dtype=np.float32)
         self.eligibility = np.zeros(num_dns, dtype=np.float32)
         self.action_trace = np.zeros(num_actions, dtype=np.float32)
         self.dopamine = 0.0
-
-        self.reward_history = deque(maxlen=200)
-        self.dopamine_history = deque(maxlen=200)
+        self.dopamine_history = deque(maxlen=100)
+        self.reward_history = deque(maxlen=100)
         self.total_reward = 0.0
         self.updates = 0
 
@@ -385,6 +286,13 @@ class FlyLearner:
     def load(self, path):
         try:
             self.action_weights = np.load(path)
+            if self.action_weights.shape != (self.num_dns, self.num_actions):
+                print(f"[RL] Reshaping weights matrix to match connectome ({self.num_dns} x {self.num_actions})")
+                new_w = np.zeros((self.num_dns, self.num_actions), dtype=np.float32)
+                r = min(self.action_weights.shape[0], self.num_dns)
+                c = min(self.action_weights.shape[1], self.num_actions)
+                new_w[:r, :c] = self.action_weights[:r, :c]
+                self.action_weights = new_w
             print(f"[RL] Loaded previously learned weights from {path}")
             return True
         except FileNotFoundError:
@@ -392,18 +300,21 @@ class FlyLearner:
             return False
 
 
-def get_pixel_grids(img):
-    b = img[:, :, 0].astype(float)
-    g = img[:, :, 1].astype(float)
-    r = img[:, :, 2].astype(float)
+def get_pixel_grids(img, resolution_preset="8x8", use_color=True):
+    target_wh = RESOLUTION_PRESETS.get(resolution_preset, (8, 8))
     
-    redness = np.clip(r * 2.0 - np.maximum(g, b) * 1.5, 0, 255).astype(np.uint8)
-    blueness = np.clip(b * 2.0 - np.maximum(r, g) * 1.5, 0, 255).astype(np.uint8)
-    
-    red_small = cv2.resize(redness, (8, 8), interpolation=cv2.INTER_AREA)
-    blue_small = cv2.resize(blueness, (8, 8), interpolation=cv2.INTER_AREA)
-    
-    return red_small.flatten() / 255.0, blue_small.flatten() / 255.0, cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
+    if use_color:
+        bgr_small = cv2.resize(img[:, :, :3], target_wh, interpolation=cv2.INTER_AREA)
+        r_grid = bgr_small[:, :, 2].flatten() / 255.0
+        b_grid = bgr_small[:, :, 0].flatten() / 255.0
+    else:
+        gray = cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
+        gray_small = cv2.resize(gray, target_wh, interpolation=cv2.INTER_AREA)
+        r_grid = gray_small.flatten() / 255.0
+        b_grid = gray_small.flatten() / 255.0
+
+    gray_full = cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
+    return r_grid, b_grid, gray_full
 
 
 def detect_opponent(gray, width, height):
@@ -418,10 +329,12 @@ def detect_opponent(gray, width, height):
             M = cv2.moments(c)
             if M["m00"] != 0:
                 cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"]) + y1
                 dx = cx - (width // 2)
+                dy = cy - (height // 2)
                 threat = min(1.0, size / 70.0)
-                return (dx, size), threat
-    return (0, 12), 0.1
+                return (dx, dy, size), threat
+    return (0, 0, 12), 0.1
 
 
 def detect_motion(gray, prev):
@@ -436,14 +349,19 @@ for _ in range(5):
     brain_memory.append(0.0)
 
 
-def run_brain(opp, threat, pixels_r, pixels_b, motion, dopamine_level):
+def run_brain(opp, threat, pixels_r, pixels_b, motion, dopamine_level, pattern_burst=False):
     global arousal
     brain, fd, dns, dans, retina_r, retina_b, populations = get_brain_components()
 
-    injections = fd.inject(opp=opp, threat=threat)
+    opp_pos = (opp[0], opp[2]) if len(opp) == 3 else opp
+    injections = fd.inject(opp=opp_pos, threat=threat)
 
-    for i in range(64):
+    num_r = min(len(pixels_r), len(retina_r))
+    for i in range(num_r):
         injections.append((retina_r[i], pixels_r[i] * 5.0))
+
+    num_b = min(len(pixels_b), len(retina_b))
+    for i in range(num_b):
         injections.append((retina_b[i], pixels_b[i] * 5.0))
 
     if motion > 0.05:
@@ -451,6 +369,10 @@ def run_brain(opp, threat, pixels_r, pixels_b, motion, dopamine_level):
         for i in range(min(32, len(retina_r))):
             injections.append((retina_r[i], boost))
             injections.append((retina_b[i], boost))
+
+    if pattern_burst:
+        for dn in dns[20:40]:
+            injections.append((dn, 1.8))
 
     if arousal > 0.3:
         for dn in dns[:20]:
@@ -498,6 +420,22 @@ def safe_click(x, y, monitor):
         pass
 
 
+def execute_camera_lock(opp, monitor, sensitivity=0.3):
+    """Smoothly moves mouse to center camera on opponent dx, dy."""
+    if len(opp) < 2:
+        return
+    dx, dy = opp[0], opp[1]
+    if abs(dx) < 15 and abs(dy) < 15:
+        return
+    move_x = int(dx * sensitivity)
+    move_y = int(dy * sensitivity)
+    try:
+        import pydirectinput
+        pydirectinput.moveRel(move_x, move_y, relative=True, _pause=False)
+    except Exception:
+        pass
+
+
 def execute_actions(actions, monitor):
     try:
         import pydirectinput
@@ -539,11 +477,22 @@ def execute_actions(actions, monitor):
 
 
 def run_rl():
-    print("\n" + "=" * 55)
+    cfg = ConfigManager.load_config()
+    res_mode = cfg.get("resolution", "8x8")
+    use_color = cfg.get("use_color", True)
+    cam_lock = cfg.get("camera_lock_enabled", True)
+    cam_sens = cfg.get("camera_sensitivity", 0.3)
+    use_pattern = cfg.get("pattern_recognition", True)
+
+    print("\n" + "=" * 65)
     print("  FLY BRAIN RL: DOPAMINE-DRIVEN COMBAT LEARNER")
-    print("  STARTING IN 3 SECONDS")
+    print("  ⚠️ IMPORTANT USER GUIDANCE:")
+    print("  1. RESIZE ROBLOX WINDOW TO THE SMALLEST POSSIBLE SIZE.")
+    print("  2. RECOMMEND AT LEAST 20+ MINUTES OF TRAINING DATA FOR GOOD RESULTS.")
+    print(f"  Visual Mode: {res_mode} | Color: {use_color} | Target Lock: {cam_lock}")
+    print("  STARTING IN 3 SECONDS...")
     print("  Press Q in preview window to stop")
-    print("=" * 55)
+    print("=" * 65)
     time.sleep(3)
 
     brain, fd, dns, dans, retina_r, retina_b, populations = get_brain_components()
@@ -557,6 +506,7 @@ def run_rl():
         pass
 
     reward_sys = RewardSystem()
+    pattern_rec = PatternRecognizer() if use_pattern else None
     learner = FlyLearner(num_dns, NUM_ACTIONS, lr=0.001)
     learner.load(WEIGHTS_PATH)
 
@@ -571,13 +521,18 @@ def run_rl():
 
                 img = np.array(sct.grab(monitor))
 
-                pixels_r, pixels_b, gray = get_pixel_grids(img)
+                pixels_r, pixels_b, gray = get_pixel_grids(img, resolution_preset=res_mode, use_color=use_color)
                 opp, threat = detect_opponent(gray, monitor["width"], monitor["height"])
                 motion = detect_motion(gray, prev_gray)
                 prev_gray = gray.copy()
 
+                pattern_burst = False
+                if pattern_rec is not None:
+                    pattern_rec.update(opp[0], threat, motion)
+                    pattern_burst, _ = pattern_rec.predict_burst()
+
                 pop_rates, brain_state, fired, arousal_val, avg_act = run_brain(
-                    opp, threat, pixels_r, pixels_b, motion, learner.dopamine
+                    opp, threat, pixels_r, pixels_b, motion, learner.dopamine, pattern_burst=pattern_burst
                 )
 
                 learned_scores = learner.get_action_scores(brain_state)
@@ -599,13 +554,16 @@ def run_rl():
 
                 execute_actions(actions, monitor)
 
+                if cam_lock and threat > 0.2:
+                    execute_camera_lock(opp, monitor, sensitivity=cam_sens)
+
                 if cv2 is not None:
                     try:
-                        # Display preview window
-                        panel = np.zeros((300, 400, 3), dtype=np.uint8)
+                        panel = np.zeros((300, 420, 3), dtype=np.uint8)
                         cv2.putText(panel, "FLY BRAIN RL RUNNING", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-                        cv2.putText(panel, f"Step: {step}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                        cv2.putText(panel, f"Step: {step} | Res: {res_mode}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
                         cv2.putText(panel, f"Dopamine: {learner.dopamine:+.2f}", (20, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 1)
+                        cv2.putText(panel, f"Pattern Burst: {pattern_burst}", (20, 160), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
                         cv2.imshow("Fly Brain RL", panel)
                         if cv2.waitKey(1) & 0xFF in (ord('q'), 27):
                             learner.save(WEIGHTS_PATH)
