@@ -84,6 +84,31 @@ Inspect learned neural biases, top actions, weight ranges, and connectivity perc
 
 ### `[6] Wipe Memory`
 Deletes the current `fly_weights.npy` file with auto-backup, resetting the fly to a blank slate.
+### `[3] 📁 Profile Manager`
+Save, switch, and manage custom named fly brain profiles.
+
+### `[4] 📊 Brain Analytics & Weight Inspector`
+Inspect learned neural biases, top actions, and connectivity.
+
+### `[5] 🗑️ Wipe Memory`
+Deletes the current `fly_weights.npy` file, saving an automatic backup, and returning the fly to a blank slate.
+
+### `[6] 🎵 Music Experiment`
+Runs the experimental audio stimulation module.
+- You can **paste your own custom YouTube URL** or press Enter to use the default extreme bass track (AIZO).
+- The script automatically downloads the audio, analyzes the frequencies, and injects them directly into the fly's simulated auditory and mechanosensory systems.
+- Open your browser to `http://localhost:9876` to view the **Live Neural Dashboard**, which tracks brain activity, neural death (from excitotoxicity), and dopamine levels in real-time.
+
+### `[7] 🔬 Run Brain Diagnostics`
+Run a quick self-test of the connectome, retina, and memory files.
+
+### `[8] 💡 Fly Brain Explainer Guide`
+Opens a simple, hype guide explaining how the fly brain plays JJS.
+
+### `[9] 🔄 Check for Updates`
+Pulls the latest code and features from the GitHub repository automatically.
+
+---
 
 ### `[7] 🎵 Music Experiment`
 Runs the experimental audio stimulation module with a live web dashboard at `http://localhost:9876`.
