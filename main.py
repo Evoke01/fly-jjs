@@ -17,6 +17,7 @@ def print_header():
     """ + "\x1b[0m")
     print("\x1b[38;5;239m" + "═" * 60 + "\x1b[0m")
     print("   \x1b[1m\x1b[38;5;226mBIOLOGICAL REINFORCEMENT LEARNING SIMULATOR\x1b[0m")
+    print("   \x1b[38;5;51mConnecting Fruit Fly Connectome to Roblox (JJS / Sober)\x1b[0m")
     print("\x1b[38;5;239m" + "═" * 60 + "\x1b[0m\n")
 
 def print_menu():
@@ -29,17 +30,29 @@ def print_menu():
     
     print("  \x1b[38;5;201m[ 2 ] 🧠  Train Mode (Imitation)\x1b[0m")
     print("        \x1b[38;5;244mPlay the game manually while the fly watches and learns.\x1b[0m\n")
+
+    print("  \x1b[38;5;226m[ 3 ] 📁  Profile Manager (Save / Load Brain Memories)\x1b[0m")
+    print("        \x1b[38;5;244mSave, switch, and manage custom named fly brain profiles.\x1b[0m\n")
+
+    print("  \x1b[38;5;51m[ 4 ] 📊  Brain Analytics & Weight Inspector\x1b[0m")
+    print("        \x1b[38;5;244mInspect learned neural biases, top actions, and connectivity.\x1b[0m\n")
     
-    print("  \x1b[38;5;196m[ 3 ] 🗑️   Wipe Memory\x1b[0m")
-    print("        \x1b[38;5;244mDelete the weights.npy file and start from a blank slate.\x1b[0m\n")
+    print("  \x1b[38;5;196m[ 5 ] 🗑️   Wipe Memory\x1b[0m")
+    print("        \x1b[38;5;244mDelete current weights file with auto-backup and reset to blank slate.\x1b[0m\n")
     
-    print("  \x1b[38;5;111m[ 4 ] 🔄  Check for Updates\x1b[0m")
+    print("  \x1b[38;5;213m[ 6 ] 🎵  Music Experiment\x1b[0m")
+    print("        \x1b[38;5;244mMake the fly listen to custom music (or AIZO) and watch its brain.\x1b[0m\n")
+
+    print("  \x1b[38;5;118m[ 7 ] 🔬  Run Brain Diagnostics\x1b[0m")
+    print("        \x1b[38;5;244mRun a quick self-test of connectome, retina, and memory files.\x1b[0m\n")
+
+    print("  \x1b[38;5;220m[ 8 ] 💡  Fly Brain Explainer Guide\x1b[0m")
+    print("        \x1b[38;5;244mSuper simple, hype guide explaining how the fly brain plays JJS.\x1b[0m\n")
+
+    print("  \x1b[38;5;111m[ 9 ] 🔄  Check for Updates\x1b[0m")
     print("        \x1b[38;5;244mPull the latest code and features from GitHub.\x1b[0m\n")
     
-    print("  \x1b[38;5;213m[ 5 ] 🎵  Music Experiment\x1b[0m")
-    print("        \x1b[38;5;244mMake the fly listen to custom music (or AIZO) and watch its brain.\x1b[0m\n")
-    
-    print("  \x1b[38;5;240m[ 6 ] ❌  Exit System\x1b[0m\n")
+    print("  \x1b[38;5;240m[ 0 ] ❌  Exit System\x1b[0m\n")
     
     print("\x1b[38;5;239m" + "─" * 60 + "\x1b[0m")
     print("  \x1b[3;38;5;240mPowered by connectome data from Janelia Research (HHMI)\x1b[0m")
@@ -52,7 +65,10 @@ def main():
         
     explainer_path = os.path.abspath("explainer.html")
     if os.path.exists(explainer_path):
-        webbrowser.open(f"file:///{explainer_path}")
+        try:
+            webbrowser.open(f"file:///{explainer_path}")
+        except Exception:
+            pass
 
     while True:
         print_menu()
@@ -73,48 +89,105 @@ def main():
             run_trainer()
             print("\n\x1b[38;5;239m" + "=" * 60 + "\x1b[0m")
             input("  \x1b[38;5;226mPress Enter to return to the main menu...\x1b[0m")
-            
+
         elif choice == '3':
+            clear_screen()
+            print("\x1b[38;5;226m  [+] Profile Manager\x1b[0m\n")
+            from fly_jjs.core.profiles import ProfileManager
+            profiles = ProfileManager.list_profiles()
+            print("  Available Fly Brain Profiles:")
+            if not profiles:
+                print("    (No saved profiles yet)")
+            else:
+                for p in profiles:
+                    print(f"    • \x1b[1m{p['name']}\x1b[0m - Created: {p['created']} | Desc: {p['description']}")
+
+            print("\n  Actions: [1] Save Current  [2] Load  [3] Delete  [4] Back")
+            p_choice = input("  Select action > ").strip()
+            if p_choice == '1':
+                p_name = input("  Enter profile name: ").strip()
+                p_desc = input("  Enter description: ").strip()
+                ok, msg = ProfileManager.save_profile(p_name, p_desc)
+                print(f"\n  {msg}")
+            elif p_choice == '2':
+                p_name = input("  Enter profile name to load: ").strip()
+                ok, msg = ProfileManager.load_profile(p_name)
+                print(f"\n  {msg}")
+            elif p_choice == '3':
+                p_name = input("  Enter profile name to delete: ").strip()
+                ok, msg = ProfileManager.delete_profile(p_name)
+                print(f"\n  {msg}")
+            input("\n  Press Enter to return...")
+
+        elif choice == '4':
+            clear_screen()
+            print("\x1b[38;5;51m  [+] Brain Analytics & Weight Inspector\x1b[0m\n")
+            from fly_jjs.core.analytics import BrainAnalytics
+            data = BrainAnalytics.analyze()
+            if not data["exists"]:
+                print(f"  [!] {data['message']}")
+            else:
+                print(f"  Memory File: {data['path']}")
+                print(f"  Last Modified: {data['last_modified']} ({data['size_kb']:.1f} KB)")
+                print(f"  Synapses Active: {data['nonzero_synapses']} / {data['num_neurons']*data['num_actions']} ({data['connectivity_pct']:.1f}%)")
+                print(f"  Top Action Preference: \x1b[1m\x1b[38;5;46m{data['top_action'].upper()}\x1b[0m")
+                print(f"  Weight Range: {data['weight_min']:.2f} to {data['weight_max']:.2f} (Mean: {data['weight_mean']:.3f})")
+                print("\n  Top Action Biases:")
+                sorted_biases = sorted(data["biases"].items(), key=lambda x: x[1]["total_weight"], reverse=True)
+                for name, binfo in sorted_biases[:7]:
+                    print(f"    - {name:>10}: total_weight = {binfo['total_weight']:+.2f}")
+            input("\n  Press Enter to return...")
+
+        elif choice == '5':
             weights_path = os.path.expanduser("~/.fly_jjs/fly_weights.npy")
             if os.path.exists(weights_path):
-                print("\n  \x1b[38;5;196m[WARNING] This will permanently delete the fly's learned behaviors.\x1b[0m")
-                confirm = input("  Are you sure? (y/n): \x1b[38;5;196m").strip().lower()
+                print("\n  \x1b[38;5;196m[WARNING] This will reset the fly's active learned behaviors.\x1b[0m")
+                confirm = input("  Are you sure? An automatic backup will be created first. (y/n): \x1b[38;5;196m").strip().lower()
                 print("\x1b[0m", end="")
                 if confirm == 'y':
+                    from fly_jjs.core.trainer import create_backup_of_weights
+                    create_backup_of_weights()
                     os.remove(weights_path)
-                    print("\n  [✓] Memory wiped successfully.")
+                    print("\n  [✓] Memory wiped successfully. Backup saved in ~/.fly_jjs/backups/")
                 else:
                     print("\n  [-] Operation cancelled.")
             else:
-                print("\n  [!] No weights found. The fly's memory is already empty.")
+                print("\n  [!] No active weights found. The fly's memory is already empty.")
             
             input("\n  \x1b[38;5;244mPress Enter to return...\x1b[0m")
             
-        elif choice == '4':
-            clear_screen()
-            print("\n  \x1b[38;5;111m[+] Checking GitHub for updates...\x1b[0m\n")
-            if os.name == 'nt':
-                os.system("git pull")
-            else:
-                os.system("git pull")
-            
-            print("\n\x1b[38;5;239m" + "=" * 60 + "\x1b[0m")
-            input("  \x1b[38;5;244mPress Enter to return to the menu...\x1b[0m")
-            
-        elif choice == '5':
+        elif choice == '6':
             clear_screen()
             print("\x1b[38;5;213m  [+] Initializing Music Experiment...\x1b[0m")
             yt_url = input("  Enter a YouTube URL (or press Enter for default AIZO): ").strip()
             from fly_jjs.core.music_experiment import run_music_experiment
             run_music_experiment(custom_url=yt_url if yt_url else None)
+
+        elif choice == '7':
+            clear_screen()
+            from fly_jjs.core.diagnostics import run_diagnostics
+            run_diagnostics()
+            input("\n  Press Enter to return...")
+
+        elif choice == '8':
+            clear_screen()
+            from fly_jjs.core.explainer import show_simple_explainer
+            show_simple_explainer()
+
+        elif choice == '9':
+            clear_screen()
+            print("\n  \x1b[38;5;111m[+] Checking GitHub for updates...\x1b[0m\n")
+            os.system("git pull")
+            print("\n\x1b[38;5;239m" + "=" * 60 + "\x1b[0m")
+            input("  \x1b[38;5;244mPress Enter to return to the menu...\x1b[0m")
             
-        elif choice == '6':
+        elif choice == '0':
             clear_screen()
             print("\n  \x1b[38;5;46mShutting down FlyBrain simulator... Goodbye!\x1b[0m\n")
             sys.exit(0)
             
         else:
-            print("\n  \x1b[38;5;196m[!] Invalid command. Please select 1-6.\x1b[0m")
+            print("\n  \x1b[38;5;196m[!] Invalid command. Please select 0-9.\x1b[0m")
             time.sleep(1)
 
 if __name__ == "__main__":
