@@ -1,42 +1,71 @@
-# 🪰 FlyBrain × Roblox: Jujutsu Shenanigans
+# 🪰 FlyBrain × Roblox: Jujutsu Shenanigans (v1.2.0)
 
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg?style=for-the-badge)](https://github.com/Evoke01/fly-jjs)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![YouTube](https://img.shields.io/badge/YouTube-@FakeEvoke-red?style=for-the-badge&logo=youtube)](https://www.youtube.com/@FakeEvoke)
 
-This project connects a scientifically accurate simulation of a fruit fly's brain to **Roblox (Jujutsu Shenanigans)**. Instead of using traditional algorithms, it uses the actual connectome (wiring diagram) of a fruit fly to perceive the screen and control the character.
+Connect a real fruit fly's digital brain wiring (connectome) directly to **Roblox Jujutsu Shenanigans (JJS)**! Instead of traditional AI or basic bots, this project uses biological reinforcement learning and simulated neurons to see your screen, make fighting decisions, and play the game.
 
 > **⚠️ IMPORTANT DISCLAIMER:**
-> This simulation runs on a **mapped digital connectome**. It is purely a digital structure containing simulated neurons and synapses based on biological data. **This is NOT an actual biological brain, and it is NOT a sentient being.** No real flies are playing this game!
-
-By observing your gameplay or playing on its own, the fly learns to fight using real biological reinforcement learning (dopamine-driven plasticity).
+> This simulation runs on a **mapped digital connectome** (a simulated 3D map of 130,000+ neurons and synapses based on biological research). **This is NOT a living biological brain, and NO real animals are involved.**
 
 ---
 
-## ⚠️ GOLDEN RULES FOR BEST PERFORMANCE
-1. **Minimize Roblox Window:** Resize your Roblox window to the smallest size possible on screen! This maximizes screen capture FPS and keeps the fly brain reacting ultra-fast.
-2. **20+ Minutes Training Data:** Run `[2] Train Mode` for at least **20+ minutes** to build a solid training dataset for good combat results.
+## ⚡ Quick Rules for Best Performance
+1. **Shrink Roblox Window:** Make your Roblox window as small as possible on your desktop screen! Small windows drastically increase screen capture FPS and reaction time.
+2. **Train First (20+ Mins):** Run `[2] Train Mode (Watcher)` for **20+ minutes** so the fly can learn your combos and combat style before playing on its own.
 
 ---
 
-## ⚙️ HARDWARE & DEVICE MODES
-You can select pre-configured hardware tiers in `[3] Modes & Vision Settings`:
-- 🐢 **Low-End Mode (Min 4 GB RAM):** 8x8 Grayscale | Fast execution, minimal overhead.
-- ⚖️ **Mid-End Mode (Min 8 GB RAM):** 192x144 Full RGB | Balanced resolution and performance.
-- 🚀 **High-End Mode (Min 16 GB RAM):** 320x240 Full RGB | Precision target tracking.
+## 🏗️ System Flow
+
+```
++-------------------+      +----------------------+      +----------------------+
+|  Roblox JJS Game  | ---> |   Retina Visual Grid | ---> |  FlyBrain Connectome |
+|  (Screen Capture) |      | (8x8 up to 320x240)  |      |  (130,000 Synapses)  |
++-------------------+      +----------------------+      +----------------------+
+                                                                    |
+                                                                    v
++-------------------+      +----------------------+      +----------------------+
+| Game Character    | <--- | Realtime Motor Keys  | <--- | Dopamine Learning    |
+| (Punch, Dash, M1) |      | (W, A, S, D, Q, F, M1|      | (Reinforcement Loop) |
++-------------------+      +----------------------+      +----------------------+
+```
 
 ---
 
-## 🔥 KEY FEATURES
-- **Biologically Accurate RL**: Uses the `flybrain` library to simulate 130,000+ neurons and synapses.
-- **Experimental Modes & Resolutions**: Choose between `8x8`, `16x16`, `32x32`, `192x144`, and `320x240` resolution grids, plus Full RGB Color vs Grayscale toggles.
-- **Pattern Recognition**: Analyzes opponent movement patterns over sliding time windows to predict dashes and bursts.
-- **Target Lock & Camera Tracking**: Smooth mouse control automatically tracks and centers opponents in the fly's FOV.
-- **Imitation Learning**: The fly watches you play and learns to associate visual stimuli with actions.
-- **AIZO Music Experiment**: Blast the fly's brain with audio, tracked live through a sleek web dashboard monitoring neural activity, excitotoxicity, dopamine release, and emotional states via memes.
-- **Interactive CLI**: Easily switch between playing, training, settings, and experimenting right from your terminal.
+## 🎮 Easy Feature Overview
+
+Here is what each mode in the menu does, explained in simple terms:
+
+| Menu Option | Feature Name | What It Does (In Simple Terms) |
+| :--- | :--- | :--- |
+| **`[ 1 ]`** | 🎮 **Play Mode** | **Autonomous Fly Playing:** The fly takes full control of your character, fights opponents, and learns automatically. |
+| **`[ 2 ]`** | 🧠 **Train Mode** | **Fly Watches You:** You play Roblox yourself while the fly watches your screen and keypresses to copy your combat style. |
+| **`[ 3 ]`** | ⚡ **Vision & Graphics** | **Graphics & Device Settings:** Pick how sharp the fly's vision is (8x8 up to 320x240) and toggle RGB color modes. |
+| **`[ 4 ]`** | 📁 **Profile Manager** | **Brain Memory Files:** Save, switch, or backup different trained fly brain profile files. |
+| **`[ 5 ]`** | 📊 **Brain Analytics** | **Memory Inspector:** View the fly's favorite moves, active brain synapses, and learned habit scores. |
+| **`[ 6 ]`** | 🗑️ **Wipe Memory** | **Reset Brain:** Reset the fly's memory back to a blank slate (creates an auto-backup first). |
+| **`[ 7 ]`** | 🎵 **Music Experiment** | **Web Audio Dashboard:** Blast music into the fly's brain and monitor neural waves & dopamine on a live web browser dashboard. |
+| **`[ 8 ]`** | 🔬 **Self Diagnostics** | **System Self-Test:** Tests your connectome setup, retina grid, and memory files to make sure everything works. |
+| **`[ 9 ]`** | 💡 **Explainer Guide** | **Beginner Guide:** Quick hype guide breaking down how the connectome plays Roblox JJS. |
+| **`[ M ]`** | 🧪 **Manual Reward Mode** | **Treat & Penalty Training (NEW):** Press `+` to give the fly a Dopamine treat (Good!) or `-` for Octopamine penalty (Bad!) while watching it fight. |
+| **`[ L ]`** | 📡 **Live Telemetry** | **Lightweight Monitor (NEW):** View live brain firing rates, dopamine levels, and active motor outputs in a clean CLI dashboard. |
+| **`[ U ]`** | 🔄 **Check for Updates** | **Pull Latest Code:** Fetch the latest updates directly from GitHub. |
 
 ---
 
-## 🛠️ Installation
+## ⚙️ Hardware Tier Presets
+
+You can select a preset that fits your PC performance in `[3] Vision & Graphics`:
+- 🐢 **Low-End PC (4 GB RAM):** `8x8 Grayscale` — Ultra-fast FPS, minimal CPU/RAM usage.
+- ⚖️ **Mid-End PC (8 GB RAM):** `192x144 Full RGB` — Balanced picture resolution and speed.
+- 🚀 **High-End PC (16+ GB RAM):** `320x240 Full RGB` — High resolution visual tracking.
+
+---
+
+## 🛠️ Installation & Setup
 
 1. **Clone the repository:**
    ```bash
@@ -44,59 +73,20 @@ You can select pre-configured hardware tiers in `[3] Modes & Vision Settings`:
    cd fly-jjs
    ```
 
-2. **Install the dependencies:**
+2. **Install required dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
----
-
-## 🎮 How to Use
-
-To start the interactive terminal menu, simply run:
-```bash
-python main.py
-```
-
-You will see the following options:
-
-### `[1] Play (Autonomous RL)`
-Starts the reinforcement learning loop. 
-- Open your Roblox window.
-- The fly will take control of your keyboard and mouse, using camera tracking, pattern recognition, and dopamine feedback.
-- **To stop:** Press `Q` in the "Fly Brain RL" window or move your mouse to the top-left corner of your screen (Failsafe).
-
-### `[2] Train (Imitation Learning)`
-Starts the supervised imitation learning mode.
-- Open your Roblox window and play the game yourself.
-- The fly will observe your key presses and screen visuals.
-- Displays a real-time progress bar toward the recommended 20-minute mark.
-- **To stop:** Press `Q` or `ESC` to save the weights and exit.
-
-### `[3] Modes & Vision Settings`
-Configure hardware tier presets (Low/Mid/High), resolutions (8x8 to 320x240), RGB color toggles, target lock sensitivity, and pattern recognition.
-
-### `[4] Profile Manager`
-Save, switch, and manage custom named fly brain profiles.
-
-### `[5] Brain Analytics`
-Inspect learned neural biases, top actions, weight ranges, and connectivity percentages.
-
-### `[6] Wipe Memory`
-Deletes the current `fly_weights.npy` file with auto-backup, resetting the fly to a blank slate.
-
-### `[7] 🎵 Music Experiment`
-Runs the experimental audio stimulation module with a live web dashboard at `http://localhost:9876`.
-
-### `[8] Run Brain Diagnostics`
-Self-test connectome components, retina inputs, and memory file integrity.
-
-### `[9] Fly Brain Explainer Guide`
-Interactive hype guide explaining how the fly brain plays JJS.
+3. **Launch the simulator:**
+   ```bash
+   python main.py
+   ```
 
 ---
 
-## 📜 License & Attribution
-This project is open-source under the MIT License, with one strict condition for content creators:
+## 📜 License & Creator Attribution
+This project is open-source under the **MIT License**.
 
-**If you use this software in a YouTube video, TikTok, stream, or any other public media, you MUST credit the original creator by linking to [@FakeEvoke](https://www.youtube.com/@FakeEvoke) in your description.**
+**Creator Attribution Requirement:**
+If you showcase or use this project in a YouTube video, TikTok, stream, or public post, you **MUST** credit the original author by including a link to [@FakeEvoke](https://www.youtube.com/@FakeEvoke) in your description.

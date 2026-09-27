@@ -4,10 +4,74 @@ import os
 import webbrowser
 from fly_jjs.core.config import ConfigManager, DEVICE_TIERS, RESOLUTION_PRESETS
 
+try:
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+    from rich.text import Text
+    from rich.prompt import Prompt
+    from rich import box
+    RICH_AVAILABLE = True
+    console = Console()
+except ImportError:
+    RICH_AVAILABLE = False
+    console = None
+
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-def print_header():
+def get_menu_header_panel():
+    cfg = ConfigManager.load_config()
+    tier = cfg.get("device_tier", "mid")
+    res = cfg.get("resolution", "8x8")
+    color = "Full RGB" if cfg.get("use_color", True) else "Grayscale"
+    tier_name = DEVICE_TIERS.get(tier, {}).get('name', tier.title())
+
+    header_text = """[bold green]
+    ███████╗██╗     ██╗   ██╗         ██╗     ██╗███████╗
+    ██╔════╝██║     ╚██╗ ██╔╝         ██║     ██║██╔════╝
+    █████╗  ██║      ╚████╔╝          ██║     ██║███████╗
+    ██╔══╝  ██║       ╚██╔╝      ██   ██║██   ██║╚════██║
+    ██║     ███████╗   ██║       ╚█████╔╝╚█████╔╝███████║
+    ╚═╝     ╚══════╝   ╚═╝        ╚════╝  ╚════╝ ╚══════╝[/bold green]
+    [bold yellow]BIOLOGICAL REINFORCEMENT LEARNING SIMULATOR (v1.2.0)[/bold yellow]
+    [cyan]Connecting Fruit Fly Connectome to Roblox (JJS / Sober)[/cyan]
+    """
+    
+    status_str = f"[bold cyan]Mode:[/] {tier_name}  |  [bold cyan]Res:[/] {res}  |  [bold cyan]Color:[/] {color}"
+    notes_str = "[bold red]⚠️ IMPORTANT NOTES:[/] [yellow]1. Shrink Roblox Window for Max FPS  |  2. Train 20+ Mins First[/]"
+
+    content = f"{header_text}\n{status_str}\n{notes_str}"
+    return Panel(content, border_style="bright_blue", box=box.ROUNDED)
+
+def print_rich_menu():
+    clear_screen()
+    console.print(get_menu_header_panel())
+
+    table = Table(title="[bold yellow]AVAILABLE OPERATION MODES[/bold yellow]", box=box.SIMPLE_HEAVY, show_header=True, header_style="bold magenta")
+    table.add_column("Option", justify="center", style="bold cyan", width=8)
+    table.add_column("Mode Name", style="bold white", width=26)
+    table.add_column("Simple Description", style="dim white")
+
+    table.add_row("[ 1 ]", "🎮 Play Mode", "Autonomous fly combat & dopamine learning")
+    table.add_row("[ 2 ]", "🧠 Train Mode", "Imitation trainer (Fly watches you play)")
+    table.add_row("[ 3 ]", "⚡ Vision & Graphics", "Configure resolution (8x8-320x240) & RAM tier")
+    table.add_row("[ 4 ]", "📁 Profile Manager", "Save, switch, and backup brain memory files")
+    table.add_row("[ 5 ]", "📊 Brain Analytics", "Inspect top action biases & learned synapses")
+    table.add_row("[ 6 ]", "🗑️ Wipe Memory", "Reset fly brain weights (with auto-backup)")
+    table.add_row("[ 7 ]", "🎵 Music Experiment", "Blast music to fly brain & live web dashboard")
+    table.add_row("[ 8 ]", "🔬 Self Diagnostics", "Run connectome, retina, and memory self-test")
+    table.add_row("[ 9 ]", "💡 Explainer Guide", "Beginner guide on how the fly brain plays JJS")
+    table.add_row("[ M ]", "🧪 Manual Reward Mode", "Give manual Dopamine (+) or Punishment (-)")
+    table.add_row("[ L ]", "📡 Live Telemetry", "Realtime CLI brain monitor (Lightweight ~10 FPS)")
+    table.add_row("[ U ]", "🔄 Check Updates", "Pull latest updates directly from GitHub")
+    table.add_row("[ 0 ]", "❌ Exit System", "Shut down FlyBrain simulator")
+
+    console.print(table)
+    console.print("[dim italic cyan]  Powered by connectome data from Janelia Research (HHMI) | Created by @FakeEvoke[/dim italic cyan]\n")
+
+def print_fallback_menu():
+    clear_screen()
     print("\x1b[38;5;46m" + r"""
     ███████╗██╗     ██╗   ██╗         ██╗     ██╗███████╗
     ██╔════╝██║     ╚██╗ ██╔╝         ██║     ██║██╔════╝
@@ -16,88 +80,60 @@ def print_header():
     ██║     ███████╗   ██║       ╚█████╔╝╚█████╔╝███████║
     ╚═╝     ╚══════╝   ╚═╝        ╚════╝  ╚════╝ ╚══════╝
     """ + "\x1b[0m")
-    print("\x1b[38;5;239m" + "═" * 65 + "\x1b[0m")
-    print("   \x1b[1m\x1b[38;5;226mBIOLOGICAL REINFORCEMENT LEARNING SIMULATOR\x1b[0m")
-    print("   \x1b[38;5;51mConnecting Fruit Fly Connectome to Roblox (JJS / Sober)\x1b[0m")
-    print("\x1b[38;5;239m" + "═" * 65 + "\x1b[0m\n")
-
-    # Important user notes & recommendations
+    print("   \x1b[1m\x1b[38;5;226mBIOLOGICAL REINFORCEMENT LEARNING SIMULATOR (v1.2.0)\x1b[0m")
+    print("   \x1b[38;5;51mConnecting Fruit Fly Connectome to Roblox (JJS / Sober)\x1b[0m\n")
+    
     cfg = ConfigManager.load_config()
     tier = cfg.get("device_tier", "mid")
     res = cfg.get("resolution", "8x8")
     color = "Full RGB" if cfg.get("use_color", True) else "Grayscale"
-
-    print("  \x1b[38;5;208m⚠️ IMPORTANT PERFORMANCE & TRAINING NOTES:\x1b[0m")
-    print("  \x1b[38;5;222m1. RESIZE ROBLOX WINDOW TO THE SMALLEST POSSIBLE SIZE.\x1b[0m")
-    print("  \x1b[38;5;222m2. AT LEAST 20+ MINUTES OF TRAINING DATA IS REQUIRED FOR GOOD RESULTS.\x1b[0m")
-    print(f"  \x1b[38;5;117mCurrent Mode: {DEVICE_TIERS[tier]['name']} | Res: {res} | Visuals: {color}\x1b[0m")
-    print("\x1b[38;5;239m" + "─" * 65 + "\x1b[0m\n")
-
-def print_menu():
-    clear_screen()
-    print_header()
-    print("  \x1b[38;5;15mSelect an operation mode:\x1b[0m\n")
     
-    print("  \x1b[38;5;129m[ 1 ] 🎮  Play Mode (Autonomous RL)\x1b[0m")
-    print("        \x1b[38;5;244mLet the fly brain take control and learn via dopamine.\x1b[0m\n")
-    
-    print("  \x1b[38;5;201m[ 2 ] 🧠  Train Mode (Imitation)\x1b[0m")
-    print("        \x1b[38;5;244mPlay the game manually while the fly watches and learns.\x1b[0m\n")
+    print(f"  Current Mode: {DEVICE_TIERS[tier]['name']} | Res: {res} | Visuals: {color}")
+    print("  \x1b[38;5;208m⚠️ NOTES: 1. Shrink Roblox Window for Max FPS | 2. Train 20+ Mins First\x1b[0m\n")
 
-    print("  \x1b[38;5;220m[ 3 ] ⚡  Modes & Vision Settings (Low/Mid/High Devices)\x1b[0m")
-    print("        \x1b[38;5;244mConfigure resolution (8x8 to 320x240), RGB color, and RAM modes.\x1b[0m\n")
-
-    print("  \x1b[38;5;226m[ 4 ] 📁  Profile Manager (Save / Load Brain Memories)\x1b[0m")
-    print("        \x1b[38;5;244mSave, switch, and manage custom named fly brain profiles.\x1b[0m\n")
-
-    print("  \x1b[38;5;51m[ 5 ] 📊  Brain Analytics & Weight Inspector\x1b[0m")
-    print("        \x1b[38;5;244mInspect learned neural biases, top actions, and connectivity.\x1b[0m\n")
-    
-    print("  \x1b[38;5;196m[ 6 ] 🗑️   Wipe Memory\x1b[0m")
-    print("        \x1b[38;5;244mDelete current weights file with auto-backup and reset to blank slate.\x1b[0m\n")
-    
-    print("  \x1b[38;5;213m[ 7 ] 🎵  Music Experiment\x1b[0m")
-    print("        \x1b[38;5;244mMake the fly listen to custom music (or AIZO) and watch its brain.\x1b[0m\n")
-
-    print("  \x1b[38;5;118m[ 8 ] 🔬  Run Brain Diagnostics\x1b[0m")
-    print("        \x1b[38;5;244mRun a quick self-test of connectome, retina, and memory files.\x1b[0m\n")
-
-    print("  \x1b[38;5;220m[ 9 ] 💡  Fly Brain Explainer Guide\x1b[0m")
-    print("        \x1b[38;5;244mSuper simple, hype guide explaining how the fly brain plays JJS.\x1b[0m\n")
-
-    print("  \x1b[38;5;111m[ U ] 🔄  Check for Updates\x1b[0m")
-    print("        \x1b[38;5;244mPull the latest code and features from GitHub.\x1b[0m\n")
-    
-    print("  \x1b[38;5;240m[ 0 ] ❌  Exit System\x1b[0m\n")
-    
-    print("\x1b[38;5;239m" + "─" * 65 + "\x1b[0m")
-    print("  \x1b[3;38;5;240mPowered by connectome data from Janelia Research (HHMI)\x1b[0m")
-    print("  \x1b[3;38;5;240mCreated by @FakeEvoke on YouTube\x1b[0m")
-    print("\x1b[38;5;239m" + "─" * 65 + "\x1b[0m")
+    print("  [ 1 ] 🎮 Play Mode (Autonomous Fly Combat)")
+    print("  [ 2 ] 🧠 Train Mode (Fly Watches You Play)")
+    print("  [ 3 ] ⚡ Vision & Graphics Settings")
+    print("  [ 4 ] 📁 Profile Manager (Save / Load Memories)")
+    print("  [ 5 ] 📊 Brain Analytics & Synapses")
+    print("  [ 6 ] 🗑️ Wipe Memory (Reset Fly Brain)")
+    print("  [ 7 ] 🎵 Music Experiment & Web Dashboard")
+    print("  [ 8 ] 🔬 Self Diagnostics")
+    print("  [ 9 ] 💡 Explainer Guide")
+    print("  [ M ] 🧪 Manual Reward Mode (Treat / Penalty)")
+    print("  [ L ] 📡 Live Brain Telemetry Monitor")
+    print("  [ U ] 🔄 Check for Updates")
+    print("  [ 0 ] ❌ Exit System\n")
 
 def configure_modes():
     cfg = ConfigManager.load_config()
     while True:
         clear_screen()
-        print("\x1b[38;5;220m  [+] Vision Modes & Device Performance Engine\x1b[0m\n")
-        print(f"  Current Device Tier: \x1b[1m\x1b[38;5;46m{DEVICE_TIERS[cfg['device_tier']]['name']}\x1b[0m ({DEVICE_TIERS[cfg['device_tier']]['min_ram']})")
-        print(f"  Current Resolution Grid: \x1b[1m\x1b[38;5;51m{cfg['resolution']}\x1b[0m")
-        print(f"  Color Processing: \x1b[1m\x1b[38;5;213m{'Full RGB Color' if cfg['use_color'] else 'Grayscale (No Color)'}\x1b[0m")
-        print(f"  Pattern Recognition: \x1b[1m{'Enabled' if cfg.get('pattern_recognition') else 'Disabled'}\x1b[0m")
-        print(f"  Camera Target Locking: \x1b[1m{'Enabled' if cfg.get('camera_lock_enabled') else 'Disabled'}\x1b[0m")
+        if RICH_AVAILABLE:
+            table = Table(title="[bold yellow]⚡ Vision & Device Performance Engine[/bold yellow]", box=box.ROUNDED)
+            table.add_column("Setting", style="bold cyan")
+            table.add_column("Current Value", style="bold green")
 
-        print("\n  \x1b[38;5;208mSelect Hardware Tier Preset:\x1b[0m")
-        print("  [1] Low-End Mode (Min 4 GB RAM | 8x8 Grayscale | High FPS)")
-        print("  [2] Mid-End Mode (Min 8 GB RAM | 192x144 Color | Balanced)")
-        print("  [3] High-End Mode (Min 16 GB RAM | 320x240 Color | Precision)")
-        print("\n  \x1b[38;5;208mCustom Granular Toggles:\x1b[0m")
-        print("  [4] Change Resolution (8x8, 16x16, 32x32, 192x144, 320x240)")
-        print("  [5] Toggle Color Mode (Full RGB vs No Color)")
-        print("  [6] Toggle Target Lock Camera Tracking")
-        print("  [7] Toggle Pattern Recognition")
-        print("\n  [8] Back to Main Menu")
+            table.add_row("Device Tier Preset", f"{DEVICE_TIERS[cfg['device_tier']]['name']} ({DEVICE_TIERS[cfg['device_tier']]['min_ram']})")
+            table.add_row("Resolution Grid", cfg['resolution'])
+            table.add_row("Color Processing", 'Full RGB Color' if cfg['use_color'] else 'Grayscale')
+            table.add_row("Pattern Recognition", 'Enabled' if cfg.get('pattern_recognition') else 'Disabled')
+            table.add_row("Camera Target Lock", 'Enabled' if cfg.get('camera_lock_enabled') else 'Disabled')
+            console.print(table)
 
-        sub_choice = input("\n  Select option > ").strip()
+            console.print("\n[bold yellow]Hardware Tier Presets:[/] [1] Low-End (8x8 Gray)  [2] Mid-End (192x144 RGB)  [3] High-End (320x240 RGB)")
+            console.print("[bold yellow]Custom Toggles:[/]       [4] Change Resolution  [5] Toggle RGB Color   [6] Toggle Target Lock   [7] Toggle Pattern Rec")
+            console.print("[bold red][8] Back to Main Menu[/bold red]")
+            sub_choice = Prompt.ask("\n[bold green]Select option[/bold green]").strip()
+        else:
+            print("\x1b[38;5;220m  [+] Vision Modes & Device Performance Engine\x1b[0m\n")
+            print(f"  Current Device Tier: {DEVICE_TIERS[cfg['device_tier']]['name']}")
+            print(f"  Current Resolution Grid: {cfg['resolution']}")
+            print(f"  Color Processing: {'Full RGB Color' if cfg['use_color'] else 'Grayscale'}")
+            print("\n  [1] Low-End  [2] Mid-End  [3] High-End")
+            print("  [4] Change Res  [5] Toggle Color  [6] Toggle Target Lock  [7] Toggle Pattern  [8] Back")
+            sub_choice = input("\n  Select option > ").strip()
+
         if sub_choice == '1':
             ConfigManager.set_device_tier("low")
             cfg = ConfigManager.load_config()
@@ -153,8 +189,12 @@ def main():
             pass
 
     while True:
-        print_menu()
-        choice = input("\n  \x1b[1m\x1b[38;5;46m>\x1b[0m ").strip().lower()
+        if RICH_AVAILABLE:
+            print_rich_menu()
+            choice = Prompt.ask("[bold green]Select Option[/bold green]").strip().lower()
+        else:
+            print_fallback_menu()
+            choice = input("\n  \x1b[1m\x1b[38;5;46m>\x1b[0m ").strip().lower()
         
         if choice == '1':
             clear_screen()
@@ -258,6 +298,20 @@ def main():
             clear_screen()
             from fly_jjs.core.explainer import show_simple_explainer
             show_simple_explainer()
+
+        elif choice == 'm':
+            clear_screen()
+            print("\x1b[38;5;220m  [+] Initializing Manual Reward Mode...\x1b[0m")
+            from fly_jjs.core.rl import run_rl
+            run_rl(manual_mode=True)
+            print("\n\x1b[38;5;239m" + "=" * 65 + "\x1b[0m")
+            input("  \x1b[38;5;226mPress Enter to return to the main menu...\x1b[0m")
+
+        elif choice == 'l':
+            clear_screen()
+            from fly_jjs.core.telemetry import run_telemetry
+            run_telemetry()
+            input("\n  Press Enter to return to the main menu...")
 
         elif choice in ('u', '99'):
             clear_screen()

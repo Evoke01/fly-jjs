@@ -149,9 +149,14 @@ class RewardSystem:
         bright = (gray > 235).astype(float)
         return float(np.mean(bright))
 
-    def compute(self, threat, motion, actions, img):
-        reward = 0.0
+    def compute(self, threat, motion, actions, img, manual_reward=0.0):
+        reward = manual_reward
         events = []
+
+        if manual_reward > 0:
+            events.append(f"MANUAL DOPAMINE TREAT (+{manual_reward:.1f})")
+        elif manual_reward < 0:
+            events.append(f"MANUAL PENALTY (-{abs(manual_reward):.1f})")
 
         our_hp = self._sample_our_health(img)
         enemy_hp = self._sample_enemy_health(img)
@@ -476,7 +481,7 @@ def execute_actions(actions, monitor):
         pydirectinput.press('g', _pause=False)
 
 
-def run_rl():
+def run_rl(manual_mode=False):
     cfg = ConfigManager.load_config()
     res_mode = cfg.get("resolution", "8x8")
     use_color = cfg.get("use_color", True)
@@ -485,7 +490,12 @@ def run_rl():
     use_pattern = cfg.get("pattern_recognition", True)
 
     print("\n" + "=" * 65)
-    print("  FLY BRAIN RL: DOPAMINE-DRIVEN COMBAT LEARNER")
+    if manual_mode:
+        print("  🧪 EXPERIMENTAL MANUAL REWARD MODE (DOPAMINE & PUNISHMENT)")
+        print("  • Press '+' or '=' in preview window: Give Dopamine Treat (+1.5)")
+        print("  • Press '-' or '_' in preview window: Give Octopamine Penalty (-1.5)")
+    else:
+        print("  FLY BRAIN RL: DOPAMINE-DRIVEN COMBAT LEARNER")
     print("  ⚠️ IMPORTANT USER GUIDANCE:")
     print("  1. RESIZE ROBLOX WINDOW TO THE SMALLEST POSSIBLE SIZE.")
     print("  2. RECOMMEND AT LEAST 20+ MINUTES OF TRAINING DATA FOR GOOD RESULTS.")
@@ -513,6 +523,7 @@ def run_rl():
     prev_gray = None
     last_save_time = time.time()
     step = 0
+    manual_reward_signal = 0.0
 
     try:
         with mss.mss() as sct:
@@ -549,7 +560,8 @@ def run_rl():
                         actions.add(name)
                         action_mask[i] = 1.0
 
-                reward, events = reward_sys.compute(threat, motion, actions, img)
+                reward, events = reward_sys.compute(threat, motion, actions, img, manual_reward=manual_reward_signal)
+                manual_reward_signal = 0.0  # Reset after applying
                 learner.update(brain_state, action_mask, reward)
 
                 execute_actions(actions, monitor)
@@ -559,15 +571,25 @@ def run_rl():
 
                 if cv2 is not None:
                     try:
-                        panel = np.zeros((300, 420, 3), dtype=np.uint8)
-                        cv2.putText(panel, "FLY BRAIN RL RUNNING", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-                        cv2.putText(panel, f"Step: {step} | Res: {res_mode}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-                        cv2.putText(panel, f"Dopamine: {learner.dopamine:+.2f}", (20, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 1)
-                        cv2.putText(panel, f"Pattern Burst: {pattern_burst}", (20, 160), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
+                        panel = np.zeros((320, 440, 3), dtype=np.uint8)
+                        title_text = "MANUAL REWARD MODE" if manual_mode else "FLY BRAIN RL RUNNING"
+                        cv2.putText(panel, title_text, (20, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                        cv2.putText(panel, f"Step: {step} | Res: {res_mode}", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                        cv2.putText(panel, f"Dopamine: {learner.dopamine:+.2f}", (20, 105), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 1)
+                        cv2.putText(panel, f"Pattern Burst: {pattern_burst}", (20, 140), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1)
+                        if manual_mode:
+                            cv2.putText(panel, "Press '+' : Dopamine Treat (+1.5)", (20, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 128), 1)
+                            cv2.putText(panel, "Press '-' : Octopamine Penalty (-1.5)", (20, 210), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 100, 255), 1)
+
                         cv2.imshow("Fly Brain RL", panel)
-                        if cv2.waitKey(1) & 0xFF in (ord('q'), 27):
+                        key = cv2.waitKey(1) & 0xFF
+                        if key in (ord('q'), 27):
                             learner.save(WEIGHTS_PATH)
                             break
+                        elif key in (ord('+'), ord('=')):
+                            manual_reward_signal = +1.5
+                        elif key in (ord('-'), ord('_')):
+                            manual_reward_signal = -1.5
                     except Exception:
                         pass
 
