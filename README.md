@@ -78,10 +78,75 @@ You can select a preset that fits your PC performance in `[3] Vision & Graphics`
    pip install -r requirements.txt
    ```
 
-3. **Launch the simulator:**
-   ```bash
-   python main.py
-   ```
+---
+
+## 🎮 How to Use
+
+To start the interactive terminal menu, simply run:
+```bash
+python main.py
+```
+
+You will see the following options:
+
+### `[1] Play (Autonomous RL)`
+Starts the reinforcement learning loop. 
+- Open your Roblox window.
+- The fly will take control of your keyboard and mouse, using camera tracking, pattern recognition, and dopamine feedback.
+- **To stop:** Press `Q` in the "Fly Brain RL" window or move your mouse to the top-left corner of your screen (Failsafe).
+
+### `[2] Train (Imitation Learning)`
+Starts the supervised imitation learning mode.
+- Open your Roblox window and play the game yourself.
+- The fly will observe your key presses and screen visuals.
+- Displays a real-time progress bar toward the recommended 20-minute mark.
+- **To stop:** Press `Q` or `ESC` to save the weights and exit.
+
+### `[3] Modes & Vision Settings`
+Configure hardware tier presets (Low/Mid/High), resolutions (8x8 to 320x240), RGB color toggles, target lock sensitivity, and pattern recognition.
+
+### `[4] Profile Manager`
+Save, switch, and manage custom named fly brain profiles.
+
+### `[5] Brain Analytics`
+Inspect learned neural biases, top actions, weight ranges, and connectivity percentages.
+
+### `[6] Wipe Memory`
+Deletes the current `fly_weights.npy` file with auto-backup, resetting the fly to a blank slate.
+### `[3] 📁 Profile Manager`
+Save, switch, and manage custom named fly brain profiles.
+
+### `[4] 📊 Brain Analytics & Weight Inspector`
+Inspect learned neural biases, top actions, and connectivity.
+
+### `[5] 🗑️ Wipe Memory`
+Deletes the current `fly_weights.npy` file, saving an automatic backup, and returning the fly to a blank slate.
+
+### `[6] 🎵 Music Experiment`
+Runs the experimental audio stimulation module.
+- You can **paste your own custom YouTube URL** or press Enter to use the default extreme bass track (AIZO).
+- The script automatically downloads the audio, analyzes the frequencies, and injects them directly into the fly's simulated auditory and mechanosensory systems.
+- Open your browser to `http://localhost:9876` to view the **Live Neural Dashboard**, which tracks brain activity, neural death (from excitotoxicity), and dopamine levels in real-time.
+
+### `[7] 🔬 Run Brain Diagnostics`
+Run a quick self-test of the connectome, retina, and memory files.
+
+### `[8] 💡 Fly Brain Explainer Guide`
+Opens a simple, hype guide explaining how the fly brain plays JJS.
+
+### `[9] 🔄 Check for Updates`
+Pulls the latest code and features from the GitHub repository automatically.
+
+---
+
+### `[7] 🎵 Music Experiment`
+Runs the experimental audio stimulation module with a live web dashboard at `http://localhost:9876`.
+
+### `[8] Run Brain Diagnostics`
+Self-test connectome components, retina inputs, and memory file integrity.
+
+### `[9] Fly Brain Explainer Guide`
+Interactive hype guide explaining how the fly brain plays JJS.
 
 ---
 
