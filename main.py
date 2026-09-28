@@ -33,7 +33,7 @@ def get_menu_header_panel():
     ██╔══╝  ██║       ╚██╔╝      ██   ██║██   ██║╚════██║
     ██║     ███████╗   ██║       ╚█████╔╝╚█████╔╝███████║
     ╚═╝     ╚══════╝   ╚═╝        ╚════╝  ╚════╝ ╚══════╝[/bold green]
-    [bold yellow]BIOLOGICAL REINFORCEMENT LEARNING SIMULATOR (v1.3.0)[/bold yellow]
+    [bold yellow]BIOLOGICAL REINFORCEMENT LEARNING SIMULATOR (v1.4.0)[/bold yellow]
     [cyan]Connecting Fruit Fly Connectome to Roblox (JJS / Sober)[/cyan]
     """
     
@@ -62,6 +62,7 @@ def print_rich_menu():
     table.add_row("[ 8 ]", "🔬 Self Diagnostics", "Run connectome, retina, and memory self-test")
     table.add_row("[ 9 ]", "💡 Explainer Guide", "Beginner guide on how the fly brain plays JJS")
     table.add_row("[ M ]", "🧪 Manual Reward Mode", "Give manual Dopamine (+) or Punishment (-)")
+    table.add_row("[ C ]", "🎯 Calibrate", "Show the fly your health bars & your character")
     table.add_row("[ L ]", "📡 Live Telemetry", "Watch a running Play/Train session (2nd terminal)")
     table.add_row("[ U ]", "🔄 Check Updates", "Pull latest updates directly from GitHub")
     table.add_row("[ 0 ]", "❌ Exit System", "Shut down FlyBrain simulator")
@@ -79,7 +80,7 @@ def print_fallback_menu():
     ██║     ███████╗   ██║       ╚█████╔╝╚█████╔╝███████║
     ╚═╝     ╚══════╝   ╚═╝        ╚════╝  ╚════╝ ╚══════╝
     """ + "\x1b[0m")
-    print("   \x1b[1m\x1b[38;5;226mBIOLOGICAL REINFORCEMENT LEARNING SIMULATOR (v1.3.0)\x1b[0m")
+    print("   \x1b[1m\x1b[38;5;226mBIOLOGICAL REINFORCEMENT LEARNING SIMULATOR (v1.4.0)\x1b[0m")
     print("   \x1b[38;5;51mConnecting Fruit Fly Connectome to Roblox (JJS / Sober)\x1b[0m\n")
     
     cfg = ConfigManager.load_config()
@@ -100,6 +101,7 @@ def print_fallback_menu():
     print("  [ 8 ] 🔬 Self Diagnostics")
     print("  [ 9 ] 💡 Explainer Guide")
     print("  [ M ] 🧪 Manual Reward Mode (Treat / Penalty)")
+    print("  [ C ] 🎯 Calibrate Health Bars & Your Character")
     print("  [ L ] 📡 Live Brain Telemetry (watch a running session)")
     print("  [ U ] 🔄 Check for Updates")
     print("  [ 0 ] ❌ Exit System\n")
@@ -306,6 +308,12 @@ def main():
             run_rl(manual_mode=True)
             print("\n\x1b[38;5;239m" + "=" * 65 + "\x1b[0m")
             input("  \x1b[38;5;226mPress Enter to return to the main menu...\x1b[0m")
+
+        elif choice == 'c':
+            clear_screen()
+            from fly_jjs.core.calibrate import run_calibration
+            run_calibration()
+            input("\n  Press Enter to return to the main menu...")
 
         elif choice == 'l':
             clear_screen()

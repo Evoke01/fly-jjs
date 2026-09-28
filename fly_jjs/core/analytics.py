@@ -2,18 +2,8 @@ import os
 import time
 import numpy as np
 
+from fly_jjs.core.actions import ACTION_NAMES
 from fly_jjs.core.storage import WEIGHTS_PATH
-
-ACTION_NAMES = [
-    "forward", "left", "back", "right",
-    "melee",                                 # M1
-    "skill1", "skill2", "skill3", "skill4",  # 1-4
-    "dash",                                  # Q
-    "block",                                 # F
-    "special",                               # R
-    "sprint",                                # W+W
-    "awaken",                                # G
-]
 
 class BrainAnalytics:
     """Analyzes fly_weights.npy and reports connectivity & preference stats."""

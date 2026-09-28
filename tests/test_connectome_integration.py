@@ -34,6 +34,9 @@ class TestConnectomeIntegration(unittest.TestCase):
     def test_brain_components(self):
         c = self.components
         self.assertGreater(len(c.dns), 1000)
+        self.assertGreater(len(c.readout), 50000)
+        np.testing.assert_array_equal(c.readout[:len(c.dns)], c.dns)   # old weight files map onto DNs
+        self.assertEqual(len(np.unique(c.readout)), len(c.readout))
         self.assertGreater(len(c.reward_dans), 100)     # PAM cluster
         self.assertGreater(len(c.punish_dans), 5)       # PPL1 cluster
         self.assertFalse(np.intersect1d(c.reward_dans, c.dns).size)   # dopamine is not a motor neuron
@@ -56,7 +59,7 @@ class TestConnectomeIntegration(unittest.TestCase):
         from fly_jjs.core.vision import FlyEyes, detect_opponent
         c = self.components
         body = FlyBody(c, FlyEyes(c.brain, "64x48", use_color=True))
-        learner = FlyLearner(len(c.dns), NUM_ACTIONS, seed=0)
+        learner = FlyLearner(body.num_inputs, NUM_ACTIONS, seed=0)
         pressed = 0
         for t in range(40):
             img = scene(t)
@@ -67,7 +70,8 @@ class TestConnectomeIntegration(unittest.TestCase):
             mask, probs = learner.act(rates, innate)
             learner.update(rates, mask, reward=0.1, probs=probs)
             pressed += mask.sum()
-        self.assertEqual(rates.shape, (len(c.dns),))
+        self.assertEqual(rates.shape, (body.num_inputs,))
+        self.assertGreater(body.num_inputs, 50000)       # the fly reads far more than its 1.3k DNs
         self.assertTrue(np.all((rates >= 0) & (rates <= 1)))
         self.assertTrue(np.all(np.isfinite(innate)))
         self.assertGreater(body.fired, 0)
