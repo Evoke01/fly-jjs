@@ -8,7 +8,6 @@ try:
     from rich.console import Console
     from rich.panel import Panel
     from rich.table import Table
-    from rich.text import Text
     from rich.prompt import Prompt
     from rich import box
     RICH_AVAILABLE = True
@@ -34,7 +33,7 @@ def get_menu_header_panel():
     ██╔══╝  ██║       ╚██╔╝      ██   ██║██   ██║╚════██║
     ██║     ███████╗   ██║       ╚█████╔╝╚█████╔╝███████║
     ╚═╝     ╚══════╝   ╚═╝        ╚════╝  ╚════╝ ╚══════╝[/bold green]
-    [bold yellow]BIOLOGICAL REINFORCEMENT LEARNING SIMULATOR (v1.2.0)[/bold yellow]
+    [bold yellow]BIOLOGICAL REINFORCEMENT LEARNING SIMULATOR (v1.3.0)[/bold yellow]
     [cyan]Connecting Fruit Fly Connectome to Roblox (JJS / Sober)[/cyan]
     """
     
@@ -55,7 +54,7 @@ def print_rich_menu():
 
     table.add_row("[ 1 ]", "🎮 Play Mode", "Autonomous fly combat & dopamine learning")
     table.add_row("[ 2 ]", "🧠 Train Mode", "Imitation trainer (Fly watches you play)")
-    table.add_row("[ 3 ]", "⚡ Vision & Graphics", "Configure resolution (8x8-320x240) & RAM tier")
+    table.add_row("[ 3 ]", "⚡ Vision & Graphics", "Eye resolution (8x8-320x240), color & RAM tier")
     table.add_row("[ 4 ]", "📁 Profile Manager", "Save, switch, and backup brain memory files")
     table.add_row("[ 5 ]", "📊 Brain Analytics", "Inspect top action biases & learned synapses")
     table.add_row("[ 6 ]", "🗑️ Wipe Memory", "Reset fly brain weights (with auto-backup)")
@@ -63,7 +62,7 @@ def print_rich_menu():
     table.add_row("[ 8 ]", "🔬 Self Diagnostics", "Run connectome, retina, and memory self-test")
     table.add_row("[ 9 ]", "💡 Explainer Guide", "Beginner guide on how the fly brain plays JJS")
     table.add_row("[ M ]", "🧪 Manual Reward Mode", "Give manual Dopamine (+) or Punishment (-)")
-    table.add_row("[ L ]", "📡 Live Telemetry", "Realtime CLI brain monitor (Lightweight ~10 FPS)")
+    table.add_row("[ L ]", "📡 Live Telemetry", "Watch a running Play/Train session (2nd terminal)")
     table.add_row("[ U ]", "🔄 Check Updates", "Pull latest updates directly from GitHub")
     table.add_row("[ 0 ]", "❌ Exit System", "Shut down FlyBrain simulator")
 
@@ -80,7 +79,7 @@ def print_fallback_menu():
     ██║     ███████╗   ██║       ╚█████╔╝╚█████╔╝███████║
     ╚═╝     ╚══════╝   ╚═╝        ╚════╝  ╚════╝ ╚══════╝
     """ + "\x1b[0m")
-    print("   \x1b[1m\x1b[38;5;226mBIOLOGICAL REINFORCEMENT LEARNING SIMULATOR (v1.2.0)\x1b[0m")
+    print("   \x1b[1m\x1b[38;5;226mBIOLOGICAL REINFORCEMENT LEARNING SIMULATOR (v1.3.0)\x1b[0m")
     print("   \x1b[38;5;51mConnecting Fruit Fly Connectome to Roblox (JJS / Sober)\x1b[0m\n")
     
     cfg = ConfigManager.load_config()
@@ -101,7 +100,7 @@ def print_fallback_menu():
     print("  [ 8 ] 🔬 Self Diagnostics")
     print("  [ 9 ] 💡 Explainer Guide")
     print("  [ M ] 🧪 Manual Reward Mode (Treat / Penalty)")
-    print("  [ L ] 📡 Live Brain Telemetry Monitor")
+    print("  [ L ] 📡 Live Brain Telemetry (watch a running session)")
     print("  [ U ] 🔄 Check for Updates")
     print("  [ 0 ] ❌ Exit System\n")
 
@@ -119,9 +118,10 @@ def configure_modes():
             table.add_row("Color Processing", 'Full RGB Color' if cfg['use_color'] else 'Grayscale')
             table.add_row("Pattern Recognition", 'Enabled' if cfg.get('pattern_recognition') else 'Disabled')
             table.add_row("Camera Target Lock", 'Enabled' if cfg.get('camera_lock_enabled') else 'Disabled')
+            table.add_row("Brain Steps per Frame", str(cfg.get('brain_steps', 2)))
             console.print(table)
 
-            console.print("\n[bold yellow]Hardware Tier Presets:[/] [1] Low-End (8x8 Gray)  [2] Mid-End (192x144 RGB)  [3] High-End (320x240 RGB)")
+            console.print("\n[bold yellow]Hardware Tier Presets:[/] [1] Low-End (32x32 Gray)  [2] Mid-End (64x48 RGB)  [3] High-End (128x96 RGB)")
             console.print("[bold yellow]Custom Toggles:[/]       [4] Change Resolution  [5] Toggle RGB Color   [6] Toggle Target Lock   [7] Toggle Pattern Rec")
             console.print("[bold red][8] Back to Main Menu[/bold red]")
             sub_choice = Prompt.ask("\n[bold green]Select option[/bold green]").strip()
@@ -130,7 +130,8 @@ def configure_modes():
             print(f"  Current Device Tier: {DEVICE_TIERS[cfg['device_tier']]['name']}")
             print(f"  Current Resolution Grid: {cfg['resolution']}")
             print(f"  Color Processing: {'Full RGB Color' if cfg['use_color'] else 'Grayscale'}")
-            print("\n  [1] Low-End  [2] Mid-End  [3] High-End")
+            print(f"  Brain Steps per Frame: {cfg.get('brain_steps', 2)}")
+            print("\n  [1] Low-End (32x32 Gray)  [2] Mid-End (64x48 RGB)  [3] High-End (128x96 RGB)")
             print("  [4] Change Res  [5] Toggle Color  [6] Toggle Target Lock  [7] Toggle Pattern  [8] Back")
             sub_choice = input("\n  Select option > ").strip()
 
@@ -264,16 +265,15 @@ def main():
             input("\n  Press Enter to return...")
 
         elif choice == '6':
-            weights_path = os.path.expanduser("~/.fly_jjs/fly_weights.npy")
-            if os.path.exists(weights_path):
+            from fly_jjs.core.storage import BACKUPS_DIR, WEIGHTS_PATH, create_backup_of_weights, wipe_memory
+            if os.path.exists(WEIGHTS_PATH):
                 print("\n  \x1b[38;5;196m[WARNING] This will reset the fly's active learned behaviors.\x1b[0m")
                 confirm = input("  Are you sure? An automatic backup will be created first. (y/n): \x1b[38;5;196m").strip().lower()
                 print("\x1b[0m", end="")
                 if confirm == 'y':
-                    from fly_jjs.core.trainer import create_backup_of_weights
                     create_backup_of_weights()
-                    os.remove(weights_path)
-                    print("\n  [✓] Memory wiped successfully. Backup saved in ~/.fly_jjs/backups/")
+                    wipe_memory()
+                    print(f"\n  [✓] Memory wiped successfully. Backup saved in {BACKUPS_DIR}")
                 else:
                     print("\n  [-] Operation cancelled.")
             else:
@@ -309,6 +309,7 @@ def main():
 
         elif choice == 'l':
             clear_screen()
+            print("  Tip: run this in a second terminal while Play/Train runs in the first one.")
             from fly_jjs.core.telemetry import run_telemetry
             run_telemetry()
             input("\n  Press Enter to return to the main menu...")

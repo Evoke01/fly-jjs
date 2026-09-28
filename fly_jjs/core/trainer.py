@@ -1,23 +1,17 @@
 import time
-import os
-import shutil
+from collections import deque
+
 import numpy as np
 import mss
 import cv2
-from flybrain import FlyBrain, FeatureDetectors
-from fly_jjs.core.config import ConfigManager, RESOLUTION_PRESETS
 
-ACTION_NAMES = [
-    "forward", "left", "back", "right",
-    "melee",                                 # M1
-    "skill1", "skill2", "skill3", "skill4",  # 1-4
-    "dash",                                  # Q
-    "block",                                 # F
-    "special",                               # R
-    "sprint",                                # W+W
-    "awaken",                                # G
-]
-NUM_ACTIONS = len(ACTION_NAMES)
+from fly_jjs.core.config import ConfigManager
+from fly_jjs.core.learning import FlyLearner
+from fly_jjs.core.rl import (ACTION_NAMES, NUM_ACTIONS, STOP_KEY, FlyBody, RewardSystem, countdown,
+                             detect_monitor, draw_panel, get_brain_components)
+from fly_jjs.core.storage import WEIGHTS_PATH, create_backup_of_weights
+from fly_jjs.core.telemetry import TelemetryPublisher
+from fly_jjs.core.vision import FlyEyes, detect_motion, detect_opponent
 
 KEY_MAP = {
     'w': 0,   # forward
@@ -35,121 +29,15 @@ KEY_MAP = {
 }
 MELEE_IDX = 4
 SPRINT_IDX = 12
-
-USER_DIR = os.path.expanduser("~/.fly_jjs")
-os.makedirs(USER_DIR, exist_ok=True)
-WEIGHTS_FILE = "fly_weights.npy"
-WEIGHTS_PATH = os.path.join(USER_DIR, WEIGHTS_FILE)
-
-# Lazy brain loading
-_brain = None
-_fd = None
-_dns = None
-_retina_r = None
-_retina_b = None
-
-
-def get_brain_components():
-    global _brain, _fd, _dns, _retina_r, _retina_b
-    if _brain is None:
-        print("\n[Brain] Loading connectome...")
-        _brain = FlyBrain(device="cpu")
-        _fd = FeatureDetectors(_brain)
-        _dns = _brain.cells(["descending_neuron"])
-
-        vis = _brain.cells(["LC4", "LPLC2", "LC16"])
-        if len(vis) < 128:
-            vis = _brain.cells(["KenyonCell"])
-            if len(vis) < 128:
-                vis = _dns[:128]
-        _retina_r = vis[:64]
-        _retina_b = vis[64:128]
-        print(f"[Brain] {len(_dns)} descending neurons loaded")
-    return _brain, _fd, _dns, _retina_r, _retina_b
-
-
-def detect_monitor():
-    """Detect game window or fallback to default coordinates."""
-    print("\n[System] Searching for game window...")
-    try:
-        import pygetwindow as gw
-        windows = gw.getAllWindows()
-        game_windows = [
-            w for w in windows
-            if any(t in w.title.lower() for t in ["roblox", "sober", "jujutsu"])
-            and w.width > 100 and w.height > 100
-        ]
-        if game_windows:
-            game_windows.sort(key=lambda w: w.left)
-            win = game_windows[0]
-            monitor = {
-                "top": max(0, win.top + 40),
-                "left": max(0, win.left + 5),
-                "width": win.width - 10,
-                "height": win.height - 45,
-            }
-            print(f"[System] Found window '{win.title}': {monitor['width']}x{monitor['height']}")
-            return monitor
-    except Exception:
-        pass
-    print("[System] Game window not found. Using center of screen fallback.")
-    return {"top": 240, "left": 560, "width": 800, "height": 600}
-
-
-def create_backup_of_weights():
-    """Create a timestamped backup of current fly_weights.npy if it exists."""
-    if os.path.exists(WEIGHTS_PATH):
-        backups_dir = os.path.join(USER_DIR, "backups")
-        os.makedirs(backups_dir, exist_ok=True)
-        timestamp = time.strftime("%Y%m%d_%H%M%S")
-        backup_file = f"fly_weights_backup_{timestamp}.npy"
-        backup_path = os.path.join(backups_dir, backup_file)
-        try:
-            shutil.copy2(WEIGHTS_PATH, backup_path)
-            print(f"[Backup] Created automatic backup at {backup_path}")
-        except Exception as e:
-            print(f"[Backup] Failed to create backup: {e}")
-
-
-def get_pixel_grids(img, resolution_preset="8x8", use_color=True):
-    target_wh = RESOLUTION_PRESETS.get(resolution_preset, (8, 8))
-    
-    if use_color:
-        bgr_small = cv2.resize(img[:, :, :3], target_wh, interpolation=cv2.INTER_AREA)
-        r_grid = bgr_small[:, :, 2].flatten() / 255.0
-        b_grid = bgr_small[:, :, 0].flatten() / 255.0
-    else:
-        gray = cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
-        gray_small = cv2.resize(gray, target_wh, interpolation=cv2.INTER_AREA)
-        r_grid = gray_small.flatten() / 255.0
-        b_grid = gray_small.flatten() / 255.0
-
-    gray_full = cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
-    return r_grid, b_grid, gray_full
-
-
-def detect_opponent(gray, width, height):
-    y1, y2 = height // 5, height - (height // 5)
-    roi = gray[y1:y2, :]
-    _, thresh = cv2.threshold(roi, 180, 255, cv2.THRESH_BINARY)
-    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if contours:
-        c = max(contours, key=cv2.contourArea)
-        size = int(cv2.contourArea(c) ** 0.5)
-        if size > 10:
-            M = cv2.moments(c)
-            if M["m00"] != 0:
-                cx = int(M["m10"] / M["m00"])
-                dx = cx - (width // 2)
-                threat = min(1.0, size / 70.0)
-                return (dx, size), threat
-    return (0, 12), 0.1
+FRAME_SECONDS = 0.05
+IDLE_PAUSE_SECONDS = 5.0   # no input for this long (menus, AFK): stop learning until you play
 
 
 def run_trainer():
     cfg = ConfigManager.load_config()
-    res_mode = cfg.get("resolution", "8x8")
+    res_mode = cfg.get("resolution", "64x48")
     use_color = cfg.get("use_color", True)
+    brain_steps = cfg.get("brain_steps", 2)
 
     print("\n" + "=" * 65)
     print("  FLY BRAIN IMITATION TRAINER (SUPERVISED LEARNING)")
@@ -157,27 +45,23 @@ def run_trainer():
     print("  1. RESIZE ROBLOX WINDOW TO THE SMALLEST POSSIBLE SIZE.")
     print("  2. RECOMMEND AT LEAST 20+ MINUTES OF TRAINING DATA FOR GOOD RESULTS.")
     print(f"  Visual Mode: {res_mode} | Color: {use_color}")
-    print("  STARTING IN 3 SECONDS...")
+    print("  Learning pauses while you don't touch the keyboard or mouse.")
     print("=" * 65)
-    time.sleep(3)
 
-    brain, fd, dns, retina_r, retina_b = get_brain_components()
-    num_dns = len(dns)
+    components = get_brain_components()
     monitor = detect_monitor()
+    eyes = FlyEyes(components.brain, res_mode, use_color, frame_aspect=monitor["width"] / monitor["height"])
+    print(f"[Vision] {eyes.num_neurons} visual neurons across both eyes")
+    body = FlyBody(components, eyes, steps=brain_steps)
 
-    # Load existing weights or start clean
-    if os.path.exists(WEIGHTS_PATH):
-        try:
-            weights = np.load(WEIGHTS_PATH)
-            if weights.shape != (num_dns, NUM_ACTIONS):
-                weights = np.zeros((num_dns, NUM_ACTIONS), dtype=np.float32)
-            print(f"[Trainer] Loaded existing weights from {WEIGHTS_PATH}")
-        except Exception:
-            weights = np.zeros((num_dns, NUM_ACTIONS), dtype=np.float32)
-    else:
-        weights = np.zeros((num_dns, NUM_ACTIONS), dtype=np.float32)
+    learner = FlyLearner(len(components.dns), NUM_ACTIONS)
+    learner.load(WEIGHTS_PATH)
+    create_backup_of_weights()
+    reward_sys = RewardSystem()
+    publisher = TelemetryPublisher("train")
 
     active_keys = set()
+    last_input = [time.time()]
 
     try:
         from pynput import keyboard, mouse
@@ -187,6 +71,7 @@ def run_trainer():
                 k = key.char.lower() if hasattr(key, 'char') and key.char else None
                 if k in KEY_MAP:
                     active_keys.add(k)
+                last_input[0] = time.time()
             except Exception:
                 pass
 
@@ -199,6 +84,7 @@ def run_trainer():
                 pass
 
         def on_click(x, y, button, pressed):
+            last_input[0] = time.time()
             if pressed and button == mouse.Button.left:
                 active_keys.add("click")
             elif not pressed and "click" in active_keys:
@@ -213,33 +99,31 @@ def run_trainer():
     except Exception as e:
         print(f"[Trainer] Listener warning: {e}. Running in simulation mode.")
 
+    window = "Fly Trainer"
     start_time = time.time()
     last_save_time = time.time()
+    prev_gray = None
+    prev_actions = set()
+    match = 0.5            # running average of how well the fly predicts your key presses
+    trained_seconds = 0.0
+    fps = 0.0
     step = 0
-    lr = 0.005
+    events_log = deque(maxlen=8)
 
     try:
+        countdown(window)
         with mss.mss() as sct:
             while True:
                 loop_start = time.time()
 
                 img = np.array(sct.grab(monitor))
-
-                pixels_r, pixels_b, gray = get_pixel_grids(img, resolution_preset=res_mode, use_color=use_color)
+                gray = cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
                 opp, threat = detect_opponent(gray, monitor["width"], monitor["height"])
+                motion = detect_motion(gray, prev_gray)
+                prev_gray = gray
 
-                injections = fd.inject(opp=opp, threat=threat)
-                num_r = min(len(pixels_r), len(retina_r))
-                for i in range(num_r):
-                    injections.append((retina_r[i], pixels_r[i] * 5.0))
-
-                num_b = min(len(pixels_b), len(retina_b))
-                for i in range(num_b):
-                    injections.append((retina_b[i], pixels_b[i] * 5.0))
-
-                fired_neurons = brain.step(inject=injections)
-                fired_set = set(fired_neurons)
-                brain_state = np.array([1 if dn in fired_set else 0 for dn in dns], dtype=np.float32)
+                rates = body.step(img, opp, threat)
+                innate, pop_rates = body.innate_drive(rates)
 
                 user_actions = np.zeros(NUM_ACTIONS, dtype=np.float32)
                 for k in list(active_keys):
@@ -247,49 +131,77 @@ def run_trainer():
                         user_actions[KEY_MAP[k]] = 1.0
                     elif k == "click":
                         user_actions[MELEE_IDX] = 1.0
+                pressed = {ACTION_NAMES[i] for i in np.flatnonzero(user_actions)}
 
-                if user_actions.sum() > 0:
-                    delta = np.outer(brain_state, user_actions) * lr
-                    weights += delta
-                    weights = np.clip(weights, -2.0, 2.0)
+                reward, events = reward_sys.compute(threat, motion, prev_actions, img)
+                events_log.extend(f"{step}: {e}" for e in events)
+                prev_actions = pressed
 
-                elapsed_min = (time.time() - start_time) / 60.0
-                progress_pct = min(100.0, (elapsed_min / 20.0) * 100.0)
+                learning = time.time() - last_input[0] < IDLE_PAUSE_SECONDS
+                if learning:
+                    # Every frame counts, including the ones where you press nothing: that
+                    # is how the fly learns when *not* to attack.
+                    probs = learner.imitate(rates, user_actions, reward=reward, innate=innate)
+                    agreement = float(np.mean(user_actions * probs + (1 - user_actions) * (1 - probs)))
+                    match = 0.995 * match + 0.005 * agreement
+                    trained_seconds += FRAME_SECONDS
+                else:
+                    probs = learner.policy(rates, innate)
 
-                if cv2 is not None:
-                    try:
-                        panel = np.zeros((260, 420, 3), dtype=np.uint8)
-                        cv2.putText(panel, "FLY IMITATION TRAINER", (20, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-                        cv2.putText(panel, f"Step: {step} | Active Keys: {len(active_keys)}", (20, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-                        cv2.putText(panel, f"Time Played: {elapsed_min:.1f} / 20.0 mins ({progress_pct:.0f}%)", (20, 115), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                        cv2.putText(panel, "Press Q or ESC to stop & save", (20, 155), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
-                        cv2.imshow("Fly Trainer", panel)
-                        if cv2.waitKey(1) & 0xFF in (ord('q'), 27):
-                            break
-                    except Exception:
-                        pass
+                trained_min = trained_seconds / 60.0
+                progress_pct = min(100.0, (trained_min / 20.0) * 100.0)
+
+                lines = [
+                    (f"Step: {step} | Active Keys: {len(active_keys)} | FPS: {fps:4.1f}", (255, 255, 255)),
+                    (f"Training time: {trained_min:.1f} / 20.0 mins ({progress_pct:.0f}%)", (0, 255, 0)),
+                    (f"Fly predicts your keys: {match * 100:.0f}% match", (0, 200, 255)),
+                    ("LEARNING" if learning else "PAUSED: waiting for you to play", (0, 255, 128) if learning else (255, 180, 0)),
+                    ("Press ESC here to stop & save", (200, 200, 200)),
+                ]
+                cv2.imshow(window, draw_panel("FLY IMITATION TRAINER", lines, color=(255, 255, 0)))
+                if cv2.waitKey(1) & 0xFF == STOP_KEY:
+                    break
+
+                publisher.publish({
+                    "step": step, "fps": fps, "resolution": res_mode,
+                    "dn_active_pct": float(np.mean(rates > 0.05) * 100), "fired": body.fired,
+                    "dopamine": 0.0, "value": learner.value, "reward": reward,
+                    "avg_reward": learner.avg_reward(), "total_reward": learner.total_reward,
+                    "actions": {n: float(p) for n, p in zip(ACTION_NAMES, probs)},
+                    "pressed": sorted(pressed),
+                    "innate": {n: float(r) for n, r in zip(ACTION_NAMES, pop_rates)},
+                    "vision": {c: float(v) for c, v in eyes.last_drive.items()},
+                    "eye_neurons": eyes.num_neurons,
+                    "opponent": {"dx": int(opp[0]), "size": int(opp[2]), "threat": float(threat)},
+                    "hits": {"landed": reward_sys.total_hits_landed, "taken": reward_sys.total_hits_taken,
+                             "kills": reward_sys.total_kills},
+                    "events": list(events_log) + [f"imitation match {match * 100:.0f}%"],
+                })
 
                 if time.time() - last_save_time > 30:
-                    create_backup_of_weights()
-                    np.save(WEIGHTS_PATH, weights)
+                    learner.save(WEIGHTS_PATH)
                     last_save_time = time.time()
 
                 elapsed = time.time() - loop_start
-                if elapsed < 0.05:
-                    time.sleep(0.05 - elapsed)
+                if elapsed < FRAME_SECONDS:
+                    time.sleep(FRAME_SECONDS - elapsed)
+                fps = 0.9 * fps + 0.1 / max(time.time() - loop_start, 1e-3)
                 step += 1
 
+    except KeyboardInterrupt:
+        print("\n[Trainer] Stopped by user.")
     except Exception as e:
         print(f"[Trainer] Ended: {e}")
+    finally:
+        publisher.close()
+        try:
+            cv2.destroyAllWindows()
+        except Exception:
+            pass
 
-    try:
-        cv2.destroyAllWindows()
-    except Exception:
-        pass
-
-    create_backup_of_weights()
-    np.save(WEIGHTS_PATH, weights)
-    print(f"\nSaved imitation weights ({step} frames processed).")
+    learner.save(WEIGHTS_PATH)
+    print(f"\nSaved imitation weights ({step} frames processed, "
+          f"{(time.time() - start_time) / 60:.1f} min session).")
 
 
 if __name__ == '__main__':

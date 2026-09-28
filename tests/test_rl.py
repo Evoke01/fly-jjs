@@ -1,4 +1,3 @@
-import os
 import unittest
 import numpy as np
 from fly_jjs.core.rl import RewardSystem, FlyLearner, get_pixel_grids, detect_opponent, detect_motion
@@ -18,11 +17,15 @@ class TestRLModule(unittest.TestCase):
         actions_mask[4] = 1.0 # Melee action
 
         initial_weights = learner.action_weights.copy()
-        learner.update(brain_state, actions_mask, reward=1.0)
+        melee_before = learner.policy(brain_state)[4]
+        learner.update(brain_state, actions_mask, reward=0.0)
+        # A reward describes what happened after the previous frame's actions.
+        learner.update(brain_state, np.zeros(14, dtype=np.float32), reward=1.0)
 
         self.assertGreater(learner.updates, 0)
         self.assertGreater(learner.total_reward, 0)
         self.assertFalse(np.array_equal(initial_weights, learner.action_weights))
+        self.assertGreater(learner.policy(brain_state)[4], melee_before)
 
     def test_vision_processing(self):
         dummy_img = np.zeros((100, 100, 4), dtype=np.uint8)
