@@ -1,15 +1,14 @@
-import os
 import unittest
 import numpy as np
+from fly_jjs.core.storage import WEIGHTS_PATH
 from fly_jjs.core.profiles import ProfileManager
 from fly_jjs.core.analytics import BrainAnalytics
 from fly_jjs.core.music_experiment import NeuralHealthTracker
 
 class TestNewFeatures(unittest.TestCase):
     def setUp(self):
-        self.test_dir = os.path.expanduser("~/.fly_jjs")
-        os.makedirs(self.test_dir, exist_ok=True)
-        self.wpath = os.path.join(self.test_dir, "fly_weights.npy")
+        # WEIGHTS_PATH lives in the throwaway FLY_JJS_HOME set up by tests/__init__.py.
+        self.wpath = WEIGHTS_PATH
         np.save(self.wpath, np.ones((50, 14), dtype=np.float32))
 
     def test_profile_manager(self):

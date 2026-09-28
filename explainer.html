@@ -86,29 +86,30 @@
       <div class="tier-card">
         <h3>🐢 Low-End Mode</h3>
         <p><strong>Min RAM:</strong> 4 GB RAM</p>
-        <p><strong>Resolution:</strong> 8x8 Grayscale</p>
+        <p><strong>Vision:</strong> 32x32 Grayscale &middot; 1 brain step per frame</p>
         <p>Fastest processing, minimal resource footprint.</p>
       </div>
       <div class="tier-card">
         <h3>⚖️ Mid-End Mode</h3>
         <p><strong>Min RAM:</strong> 8 GB RAM</p>
-        <p><strong>Resolution:</strong> 192x144 Full RGB</p>
-        <p>Balanced visual resolution and steady frame rates.</p>
+        <p><strong>Vision:</strong> 64x48 Full RGB &middot; 2 brain steps per frame</p>
+        <p>Balanced visual detail and steady frame rates.</p>
       </div>
       <div class="tier-card">
         <h3>🚀 High-End Mode</h3>
         <p><strong>Min RAM:</strong> 16 GB RAM</p>
-        <p><strong>Resolution:</strong> 320x240 Full RGB</p>
-        <p>High precision target detail and full picture color.</p>
+        <p><strong>Vision:</strong> 128x96 Full RGB &middot; 3 brain steps per frame</p>
+        <p>Sharpest motion and colour detail, most brain time per frame.</p>
       </div>
     </div>
 
     <h2>🧠 Brain Mechanics & Features</h2>
     <ul>
-      <li><strong>Modes & Granular Vision:</strong> Switch between 8x8, 16x16, 32x32, 192x144, and 320x240 grids, with Full RGB Color or Grayscale toggles.</li>
+      <li><strong>Compound-Eye Vision:</strong> The whole screen is split into a left and right eye and turned into brightness, darkness, motion and colour maps (8x8 up to 320x240). About 2,000 of the fly's own visual neurons each watch one patch of the screen, and they were picked because they wire straight into the fly's motor commands.</li>
       <li><strong>Target Lock & Camera Tracking:</strong> Smooth mouse tracking centers detected opponents automatically.</li>
       <li><strong>Pattern Recognition:</strong> Evaluates recent movement sequences and threat changes to predict enemy bursts and dashes.</li>
-      <li><strong>Dopamine Reinforcement:</strong> Land hits/kills to boost dopamine; take damage to decrease dopamine.</li>
+      <li><strong>Dopamine Reinforcement:</strong> Dopamine is <em>surprise</em>: a hit the fly didn't expect releases it on its reward neurons, damage it didn't see coming hits its punishment neurons. The fly tries moves on purpose, keeps the ones that pay off and drops the ones that don't.</li>
+      <li><strong>Watch &amp; Learn:</strong> Train Mode teaches the exact same brain wiring that Play Mode uses, so imitation and reinforcement learning build on each other.</li>
     </ul>
   </div>
 </body>
