@@ -11,3 +11,4 @@ pygame-ce
 librosa
 soundfile
 rich
+pygetwindow

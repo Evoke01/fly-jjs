@@ -21,13 +21,15 @@ Instead of using basic bots, we connected the **actual 3D brain wiring map (conn
 ---
 
 ### 🧠 Core Features & Upgrades:
-- **👁️ Vision Grid (8x8 to 320x240):** Choose between grayscale and full RGB color modes.
+- **👁️ Compound Eyes (8x8 to 320x240):** The screen is split into a left and right eye and turned into brightness, darkness, motion and color maps, watched by ~2,400 of the fly's own visual neurons.
 - **🎯 Target Lock Camera:** Automatically tracks opponents and centers the camera using smooth mouse movement.
 - **🔮 Pattern Predictor:** Detects opponent motion spikes to predict dashes and incoming attacks.
-- **🧪 Dopamine Reward:**
-  - Land hits / Kills  ➔ **Dopamine Spike** (+ Reward)
-  - Take damage        ➔ **Dopamine Drop** (- Penalty)
-- **🍬 Manual Reward Mode `[M]`:** Press `+` to treat or `-` to punish the fly directly while watching it fight!
+- **🧪 Dopamine = Surprise:**
+  - Unexpected hit / Kill   ➔ **Dopamine Spike** on the fly's reward neurons
+  - Unexpected damage       ➔ **Dopamine Dip** on its punishment neurons
+  - The fly tries moves on purpose and keeps the ones that pay off.
+- **🍬 Manual Reward Mode `[M]`:** Press `+` to treat or `-` to punish the fly while it fights (works while Roblox has focus)!
+- **📡 Live Telemetry `[L]`:** Watch a running session's brain from a second terminal.
 
 ---
 
@@ -50,10 +52,10 @@ Instead of using basic bots, we connected the **actual 3D brain wiring map (conn
   2. Run [2] Train Mode for 20+ mins first.
 
   🧠 CORE FEATURES:
-  • Vision Grid: 8x8 to 320x240 Full RGB
+  • Compound Eyes: 8x8 to 320x240, left/right eye, motion & color
   • Target Lock Camera Tracking
   • Pattern Burst Predictor
-  • Realtime Dopamine Reinforcement Learning
-  • Manual Treat/Penalty Mode [M]
+  • Dopamine = surprise (reward-prediction-error learning)
+  • Manual Treat/Penalty Mode [M] and Live Telemetry [L]
   """)
         input("  Press Enter to return to main menu...")
