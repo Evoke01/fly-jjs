@@ -228,11 +228,11 @@ class Fear:
 
     def label(self):
         if self.escape_rate > 0.3:
-            return "escape neuron firing: it wants to flee"
+            return "giant fibre (escape) firing"
         if self.terror > 0.55:
-            return "fear circuit blazing"
+            return "fear circuit highly active"
         if self.danger > 0.3:
-            return "senses danger"
+            return "danger sensed"
         return "calm"
 
 
@@ -439,7 +439,7 @@ class Casino:
             fly.update(p_higher=round(self.probs[0], 3), p_big=round(self.probs[1], 3))
         self.dash.publish(
             mode="casino", pokes=[], log=list(self.log),
-            title=f"Fly #{self.generation} gambles its life" + (f" vs the {self.bot.name}" if self.bot else ""),
+            title=f"Fly #{self.generation}" + (f" vs {self.bot.name}" if self.bot else " alone at the table"),
             fear={"terror": round(fear.terror, 3), "danger": round(fear.danger, 3), "label": fear.label()},
             casino={**self.table, "fly": fly, "stats": self.stats(), "banner": self.banner,
                     "strategy": self.fly.strategy() if self.steps % 30 == 0 or "strategy" not in self.table
@@ -505,8 +505,8 @@ class Casino:
             self.rounds += 1
             dopamine = self.fly.outcome(won, terror_at_bet)
 
-            self._say(f"{fly.name} bet {fly.bet}❤ on {fly.choice.upper()} with a {RANK_NAMES[card]}: "
-                      f"{RANK_NAMES[nxt]} came, {'WIN' if won else 'LOSE'} ({fly.life}❤ left)")
+            self._say(f"{fly.name}: {RANK_NAMES[card]}, {fly.choice} for {fly.bet}. {RANK_NAMES[nxt]} came, "
+                      f"{'won' if won else 'lost'}. Life {fly.life}.")
             self.table.update(phase="reveal", next=nxt, next_suit=nsuit, fly=fly.as_dict(),
                               bot=bot.as_dict() if bot else None)
             self.fly.fear.assess(fly.life, stake)
@@ -536,11 +536,13 @@ class Casino:
             key = {"beat bot": "fly", "killed": "bot", "outlasted": "bot", "draw": "draw"}.get(outcome, "draw")
             self.duels[key] += 1
         empty = board_image()
+        rounds = self.table["round"]
         if outcome == "killed":
             self.deaths += 1
-            self.banner = f"💀 FLY #{self.generation} WAS KILLED"
-            self._say(f"{fly.name} was killed after {self.table['round']} rounds. Fly #{self.generation + 1} "
-                      f"takes its seat and keeps what the others learned.")
+            self.banner = {"kind": "dead", "title": "Killed",
+                           "detail": f"{fly.name} lost its last life in round {rounds}. "
+                                     f"Fly #{self.generation + 1} takes the seat and keeps what was learned."}
+            self._say(f"{fly.name} killed in round {rounds}. Fly #{self.generation + 1} takes the seat.")
             # Terror at its peak: the whole fear circuit and the punishment neurons fire.
             self.fly.fear.danger = max(self.fly.fear.strength, 0.5) if self.fly.fear.strength else 0.0
             self.table.update(phase="dead")
@@ -550,12 +552,17 @@ class Casino:
         else:
             if outcome == "freed":
                 self.freed += 1
-            bot_name = self.bot.name.upper() if self.bot else "THE BOT"
-            self.banner = {"freed": f"🕊 FLY #{self.generation} WALKED FREE",
-                           "beat bot": f"🏆 FLY #{self.generation} BEAT THE {bot_name}",
-                           "outlasted": f"THE {bot_name} WINS ON LIFE",
-                           "draw": "DRAW"}.get(outcome, outcome.upper())
-            self._say(self.banner)
+            bot_name = self.bot.name if self.bot else "the bot"
+            self.banner = {
+                "freed": {"kind": "good", "title": "Free", "detail": f"{fly.name} survived {rounds} rounds."},
+                "beat bot": {"kind": "good", "title": "Fly wins",
+                             "detail": f"{fly.name} {'outlived' if bot and not bot.alive else 'out-gambled'} "
+                                       f"{bot_name} ({fly.life} to {bot.life if bot else 0} life)."},
+                "outlasted": {"kind": "bad", "title": f"{bot_name} wins",
+                              "detail": f"More life after {rounds} rounds ({bot.life if bot else 0} to {fly.life})."},
+                "draw": {"kind": "neutral", "title": "Draw", "detail": f"Level after {rounds} rounds."},
+            }.get(outcome, {"kind": "neutral", "title": outcome, "detail": ""})
+            self._say(f"{self.banner['title']}. {self.banner['detail']}")
             self.fly.fear.danger = 0.0
             self.table.update(phase="over")
             self._run("end", empty)

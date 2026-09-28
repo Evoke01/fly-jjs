@@ -36,26 +36,34 @@ FULL_Z = 6.0            # ...and where it is full
 SPARK = 0.18            # faint twinkle for any recent spike
 TOP_TYPES = 8
 MIN_EXCITED = 3         # excited neurons a cell type needs to be listed
+VOXEL_UM = 0.008        # MaleCNS positions are in 8 nm EM voxels (for the scale bar)
+
+# The spike raster: every spike of a few identified neurons over the last RASTER_STEPS
+# brain steps, grouped as (label, brain group or cell-type prefix).
+RASTER_GROUPS = (("GF", "escape"), ("MDN", "backward"), ("LC4", "LC4"), ("LPLC2", "LPLC2"),
+                 ("PPL1", "PPL1"), ("PAM", "PAM"))
+RASTER_PER_GROUP = 8
+RASTER_STEPS = 150      # 3 s
 
 # Display regions: name, colour (RGB, 0..1) and the superclasses drawn in it.
 REGIONS = (
-    ("Compound eyes", (1.00, 0.58, 0.22), ("ol_sensory",)),
-    ("Optic lobes", (0.28, 0.55, 1.00), ("ol_intrinsic",)),
-    ("Visual projection", (0.22, 0.88, 0.88), ("visual_projection", "visual_projection_tbc",
+    ("Compound eyes", (0.85, 0.55, 0.23), ("ol_sensory",)),
+    ("Optic lobes", (0.29, 0.47, 0.79), ("ol_intrinsic",)),
+    ("Visual projection", (0.25, 0.72, 0.69), ("visual_projection", "visual_projection_tbc",
                                                "visual_centrifugal")),
-    ("Central brain", (0.62, 0.46, 1.00), ("cb_intrinsic", "cb_endocrine", "cb_efferent")),
-    ("Mushroom body (memory)", (1.00, 0.42, 0.78), ()),
-    ("Reward dopamine (PAM)", (1.00, 0.84, 0.25), ()),
-    ("Punishment dopamine (PPL1)", (1.00, 0.22, 0.22), ()),
-    ("Descending (brain to body)", (1.00, 0.95, 0.45), ("descending_neuron", "descending_neuron_tbc",
+    ("Central brain", (0.60, 0.53, 0.84), ("cb_intrinsic", "cb_endocrine", "cb_efferent")),
+    ("Mushroom body (memory)", (0.85, 0.42, 0.60), ()),
+    ("Reward dopamine", (0.91, 0.77, 0.29), ()),
+    ("Punishment dopamine", (0.88, 0.28, 0.23), ()),
+    ("Descending neurons", (0.90, 0.83, 0.42), ("descending_neuron", "descending_neuron_tbc",
                                                        "efferent_descending")),
-    ("Ascending (body to brain)", (0.45, 1.00, 0.50), ("ascending_neuron", "efferent_ascending")),
-    ("Nerve cord", (0.40, 0.45, 1.00), ("vnc_intrinsic", "vnc_tbc", "vnc_endocrine")),
-    ("Motor neurons", (1.00, 0.62, 0.38), ("vnc_motor", "cb_motor", "vnc_efferent")),
-    ("Antennae & head sensors", (0.55, 0.95, 0.78), ("cb_sensory", "cb_sensory_tbc")),
-    ("Leg & body sensors", (0.62, 0.82, 0.56), ("vnc_sensory", "vnc_sensory_tbc", "sensory_ascending",
+    ("Ascending neurons", (0.44, 0.81, 0.49), ("ascending_neuron", "efferent_ascending")),
+    ("Nerve cord", (0.35, 0.39, 0.79), ("vnc_intrinsic", "vnc_tbc", "vnc_endocrine")),
+    ("Motor neurons", (0.90, 0.54, 0.35), ("vnc_motor", "cb_motor", "vnc_efferent")),
+    ("Antennae & head sensors", (0.50, 0.84, 0.69), ("cb_sensory", "cb_sensory_tbc")),
+    ("Leg & body sensors", (0.59, 0.73, 0.54), ("vnc_sensory", "vnc_sensory_tbc", "sensory_ascending",
                                                 "sensory_ascending_tbc", "sensory_descending")),
-    ("Other", (0.62, 0.62, 0.62), ()),
+    ("Other", (0.55, 0.55, 0.55), ()),
 )
 REGION_INDEX = {name: i for i, (name, _, _) in enumerate(REGIONS)}
 MEMORY_PREFIXES = ("KC", "MBON")
@@ -102,6 +110,21 @@ def _unit(v):
     return v / norm if norm > 0 else v
 
 
+def raster_probes(brain):
+    """The identified neurons shown in the spike raster: [(label, neuron indices)]."""
+    ct = _strings(brain.cell_type, brain.n)
+    groups = getattr(brain, "groups", {}) or {}
+    probes = []
+    for label, key in RASTER_GROUPS:
+        found = [np.asarray(groups[g]) for g in (f"{key}_L", f"{key}_R") if g in groups]
+        idx = np.concatenate(found) if found else np.flatnonzero(_starts(ct, key))
+        if len(idx) > RASTER_PER_GROUP:
+            idx = idx[np.linspace(0, len(idx) - 1, RASTER_PER_GROUP).round().astype(int)]
+        if len(idx):
+            probes.append((label, np.asarray(idx, dtype=np.int64)))
+    return probes
+
+
 def neuron_layout(brain, seed=0):
     """Where to draw every neuron. Returns a dict with view-space `positions` (n x 3,
     float32: x = the fly's right, y = up, z = towards the tail), `regions` (uint8 index
@@ -115,8 +138,8 @@ def neuron_layout(brain, seed=0):
         if superclasses:
             regions[np.isin(sc, superclasses)] = i
     regions[_starts(ct, MEMORY_PREFIXES)] = REGION_INDEX["Mushroom body (memory)"]
-    regions[_starts(ct, "PAM")] = REGION_INDEX["Reward dopamine (PAM)"]
-    regions[_starts(ct, "PPL1")] = REGION_INDEX["Punishment dopamine (PPL1)"]
+    regions[_starts(ct, "PAM")] = REGION_INDEX["Reward dopamine"]
+    regions[_starts(ct, "PPL1")] = REGION_INDEX["Punishment dopamine"]
 
     members = circuit_members(brain)
     flags = np.zeros(n, dtype=np.uint8)
@@ -130,7 +153,9 @@ def neuron_layout(brain, seed=0):
         # No anatomy in this build: one cloud per region, so the page still works.
         centres = rng.normal(0, 1.0, (len(REGIONS), 3))
         pos = centres[regions] + rng.normal(0, 0.25, (n, 3))
-        return _finish(pos, np.zeros(3), 1.0, np.eye(3), regions, flags, ct)
+        layout = _finish(pos, np.zeros(3), 1.0, np.eye(3), regions, flags, ct)
+        layout["um_per_unit"] = None      # made-up positions have no scale
+        return layout
 
     brain_pts = have & (sc == "cb_intrinsic")
     centre = pos[brain_pts].mean(0) if brain_pts.any() else pos[have].mean(0)
@@ -273,6 +298,7 @@ def _finish(pos, centre, scale, basis, regions, flags, ct):
     view = ((pos - centre) @ basis.T / scale).astype(np.float32)
     types, type_index = np.unique(ct, return_inverse=True)
     return {
+        "um_per_unit": float(scale) * VOXEL_UM,
         "positions": view,
         "regions": regions,
         "flags": flags,
@@ -311,6 +337,14 @@ class BrainDashboard:
         self._eye_png = None
         self._pokes = deque(maxlen=32)
         self._server = None
+        self.probes = raster_probes(brain)
+        self._probe_row = np.full(self.n, -1, dtype=np.int32)
+        row = 0
+        for _, idx in self.probes:
+            self._probe_row[idx] = np.arange(row, row + len(idx))
+            row += len(idx)
+        self._raster = deque(maxlen=20000)       # (brain step, raster row) per spike
+        self._step = 0
         self._layout_bytes = (self.layout["positions"].tobytes() + self.layout["regions"].tobytes()
                               + self.layout["flags"].tobytes())
 
@@ -327,6 +361,10 @@ class BrainDashboard:
             self._diff -= self.variance
             self.variance += self.follow * self._diff
             self._counts.append(len(fired))
+            rows = self._probe_row[fired]
+            for r in rows[rows >= 0]:
+                self._raster.append((self._step, int(r)))
+            self._step += 1
 
     def attach(self, body):
         """Stream every brain step of a FlyBody."""
@@ -364,6 +402,7 @@ class BrainDashboard:
             "circuits": {"fear": FEAR, "reward": REWARD, "memory": MEMORY, "motor": MOTOR},
             "circuit_sizes": {k: int(len(v)) for k, v in self.members.items()},
             "bounds": self.layout["bounds"],
+            "um_per_unit": self.layout.get("um_per_unit"),
         }
 
     def _traces(self):
@@ -389,6 +428,8 @@ class BrainDashboard:
         with self._lock:
             counts = list(self._counts)
             state = dict(self._state)
+            now = self._step
+            spikes = [(now - s, r) for s, r in self._raster if now - s < RASTER_STEPS]
         dt = float(getattr(self.brain, "dt", 0.02))
         lay = self.layout
         excited = self.excitement(activity, baseline, variance)
@@ -408,6 +449,8 @@ class BrainDashboard:
                               for i in top]
         state["circuits"] = {k: round(float(excited[v].mean()), 4) if len(v) else 0.0
                              for k, v in self.members.items()}
+        state["raster"] = {"groups": [[label, int(len(idx))] for label, idx in self.probes],
+                           "window": RASTER_STEPS, "spikes": spikes}
         return state
 
     # ---- server -----------------------------------------------------------------------
@@ -546,7 +589,8 @@ def run_brain_viewer(seconds=None, open_browser=True):
     dash.start(open_browser=open_browser)
     dark = poke_frames("none", steps=1)[0]
     queue, poke, dopamine = [], "", 0.0
-    dash.publish(mode="resting", title="Resting fly brain", pokes=list(POKES), log=[])
+    dash.publish(mode="resting", title="real time, 20 ms steps; show it something with the buttons below",
+                 pokes=list(POKES), log=[])
     log = deque(maxlen=6)
     started = time.time()
     print("[Dashboard] Running the brain in real time. Press Ctrl+C (or Stop on the page) to finish.")
