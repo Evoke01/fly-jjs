@@ -62,6 +62,7 @@ def print_rich_menu():
     table.add_row("[ 8 ]", "🔬 Self Diagnostics", "Run connectome, retina, and memory self-test")
     table.add_row("[ 9 ]", "💡 Explainer Guide", "Beginner guide on how the fly brain plays JJS")
     table.add_row("[ M ]", "🧪 Manual Reward Mode", "Give manual Dopamine (+) or Punishment (-)")
+    table.add_row("[ A ]", "🏟️ Arena", "Watch & train the fly in a simulated JJS fight")
     table.add_row("[ C ]", "🎯 Calibrate", "Show the fly your health bars & your character")
     table.add_row("[ L ]", "📡 Live Telemetry", "Watch a running Play/Train session (2nd terminal)")
     table.add_row("[ U ]", "🔄 Check Updates", "Pull latest updates directly from GitHub")
@@ -101,6 +102,7 @@ def print_fallback_menu():
     print("  [ 8 ] 🔬 Self Diagnostics")
     print("  [ 9 ] 💡 Explainer Guide")
     print("  [ M ] 🧪 Manual Reward Mode (Treat / Penalty)")
+    print("  [ A ] 🏟️ Arena (Watch & Train in a Simulated Fight)")
     print("  [ C ] 🎯 Calibrate Health Bars & Your Character")
     print("  [ L ] 📡 Live Brain Telemetry (watch a running session)")
     print("  [ U ] 🔄 Check for Updates")
@@ -179,6 +181,47 @@ def configure_modes():
             time.sleep(1)
         elif sub_choice == '8':
             break
+
+def arena_menu():
+    from fly_jjs.core.arena import run_arena
+    from fly_jjs.core.storage import ARENA_PROFILE, ARENA_WEIGHTS_PATH
+    while True:
+        clear_screen()
+        print("\x1b[38;5;208m  [+] Arena: a simulated JJS fight to warm the fly up\x1b[0m\n")
+        print("  The fly fights computer opponents with the same brain, eyes, instincts and")
+        print("  learning it uses in Roblox. Its arena brain is kept separate from your game brain.\n")
+        print("  [1] Watch the fly fight (3 fights, learning on)")
+        print("  [2] Train fast without a window")
+        print("  [3] Use the arena brain in the game (your current brain is backed up)")
+        print("  [4] Back")
+        sub = input("\n  Select option > ").strip()
+        if sub == '1':
+            run_arena(fights=3, learn=True, watch=True)
+            input("\n  Press Enter to return...")
+        elif sub == '2':
+            raw = input("  How many fights? (Enter = 20): ").strip()
+            fights = int(raw) if raw.isdigit() and int(raw) > 0 else 20
+            raw = input("  Opponent difficulty 0.5-2.0 (Enter = 1.0): ").strip()
+            try:
+                difficulty = min(2.0, max(0.5, float(raw))) if raw else 1.0
+            except ValueError:
+                difficulty = 1.0
+            results = run_arena(fights=fights, learn=True, watch=False, difficulty=difficulty)
+            if results:
+                wins = sum(r["won"] for r in results)
+                print(f"\n  Won {wins}/{len(results)} fights. Arena brain saved.")
+            input("\n  Press Enter to return...")
+        elif sub == '3':
+            if not os.path.exists(ARENA_WEIGHTS_PATH):
+                print("\n  [!] No arena brain yet. Train it with [1] or [2] first.")
+            else:
+                from fly_jjs.core.profiles import ProfileManager
+                ok, msg = ProfileManager.load_profile(ARENA_PROFILE)
+                print(f"\n  {msg}")
+            input("\n  Press Enter to return...")
+        elif sub == '4':
+            break
+
 
 def main():
     if os.name == 'nt':
@@ -308,6 +351,9 @@ def main():
             run_rl(manual_mode=True)
             print("\n\x1b[38;5;239m" + "=" * 65 + "\x1b[0m")
             input("  \x1b[38;5;226mPress Enter to return to the main menu...\x1b[0m")
+
+        elif choice == 'a':
+            arena_menu()
 
         elif choice == 'c':
             clear_screen()

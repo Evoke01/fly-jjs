@@ -78,6 +78,27 @@ class TestConnectomeIntegration(unittest.TestCase):
         self.assertGreater(pressed, 0)                   # the untrained fly does act
         self.assertLess(pressed, 40 * NUM_ACTIONS * 0.6)  # ...without mashing every key
 
+    def test_agent_fights_in_the_arena(self):
+        from fly_jjs.core.agent import FlyAgent
+        from fly_jjs.core.arena import Arena, ArenaInput
+        from fly_jjs.core.config import DEFAULT_CONFIG
+        c = self.components
+        arena = Arena(seed=2, max_seconds=3.0)
+        backend = ArenaInput()
+        agent = FlyAgent(c, dict(DEFAULT_CONFIG), arena.width, arena.height, backend, seed=2)
+        self.assertEqual(agent.learner.num_inputs, len(c.readout))
+        agent.new_fight()
+        pressed = set()
+        while not arena.done:
+            step = agent.step(arena.render(), arena.time)
+            pressed |= step.actions
+            arena.step(backend)
+        agent.end_fight(arena.render())
+        self.assertTrue(pressed)
+        self.assertGreater(agent.learner.updates, 10)
+        self.assertEqual(backend.held, set())            # nothing left held down after the fight
+        self.assertTrue(np.all(np.isfinite(agent.learner.action_weights)))
+
 
 if __name__ == "__main__":
     unittest.main()
