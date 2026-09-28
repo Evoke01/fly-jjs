@@ -1,4 +1,3 @@
-import os
 import unittest
 import numpy as np
 from fly_jjs.core.config import ConfigManager, DEVICE_TIERS, RESOLUTION_PRESETS
@@ -15,7 +14,8 @@ class TestModesAndFeatures(unittest.TestCase):
         self.assertTrue(ok)
         cfg_low = ConfigManager.load_config()
         self.assertEqual(cfg_low["device_tier"], "low")
-        self.assertEqual(cfg_low["resolution"], "8x8")
+        self.assertEqual(cfg_low["resolution"], DEVICE_TIERS["low"]["default_res"])
+        self.assertIn(cfg_low["resolution"], RESOLUTION_PRESETS)
         self.assertFalse(cfg_low["use_color"])
 
         # Reset to mid

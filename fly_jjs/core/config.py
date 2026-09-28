@@ -1,23 +1,29 @@
 import os
 import json
 
-USER_DIR = os.path.expanduser("~/.fly_jjs")
-os.makedirs(USER_DIR, exist_ok=True)
-CONFIG_PATH = os.path.join(USER_DIR, "config.json")
+from fly_jjs.core.storage import CONFIG_PATH
+
+CONFIG_VERSION = 2
 
 DEFAULT_CONFIG = {
-    "resolution": "8x8",          # "8x8", "16x16", "32x32", "192x144", "320x240"
+    "config_version": CONFIG_VERSION,
+    "resolution": "64x48",        # processing grid, see RESOLUTION_PRESETS
     "use_color": True,            # True (Full RGB) or False (Grayscale)
     "device_tier": "mid",         # "low" (4GB RAM), "mid" (8GB RAM), "high" (16GB RAM)
     "camera_lock_enabled": True,  # Enable smooth mouse target locking
     "camera_sensitivity": 0.3,    # Mouse smooth movement factor
     "pattern_recognition": True,  # Enable temporal movement pattern tracking
+    "brain_steps": 2,             # 20 ms brain steps simulated per game frame (1-3)
 }
 
+# The frame is shrunk to this grid before the fly's eyes compute contrast, colour and
+# motion; the result is then pooled onto the fly's visual neurons (see vision.py).
 RESOLUTION_PRESETS = {
     "8x8": (8, 8),
     "16x16": (16, 16),
     "32x32": (32, 32),
+    "64x48": (64, 48),
+    "128x96": (128, 96),
     "192x144": (192, 144),
     "320x240": (320, 240),
 }
@@ -27,25 +33,28 @@ DEVICE_TIERS = {
         "name": "Low-End Mode",
         "min_ram": "4 GB RAM",
         "fps_target": 20,
-        "default_res": "8x8",
+        "default_res": "32x32",
         "default_color": False,
+        "brain_steps": 1,
         "description": "Optimized for low-spec PCs. Fast execution, low memory overhead."
     },
     "mid": {
         "name": "Mid-End Mode",
         "min_ram": "8 GB RAM",
         "fps_target": 30,
-        "default_res": "192x144",
+        "default_res": "64x48",
         "default_color": True,
+        "brain_steps": 2,
         "description": "Balanced performance and visual detail."
     },
     "high": {
         "name": "High-End Mode",
         "min_ram": "16 GB RAM",
         "fps_target": 60,
-        "default_res": "320x240",
+        "default_res": "128x96",
         "default_color": True,
-        "description": "Full resolution RGB picture processing with 60 FPS target."
+        "brain_steps": 3,
+        "description": "Sharpest motion and colour detection with 60 FPS target."
     }
 }
 
@@ -58,10 +67,25 @@ class ConfigManager:
         try:
             with open(CONFIG_PATH, "r") as f:
                 cfg = json.load(f)
+            if cfg.get("config_version", 1) < CONFIG_VERSION:
+                # Older releases wrote "mid" tier + 8x8 as the untouched default; the fly's
+                # eyes now use far more than 64 inputs, so move those to the new default.
+                if cfg.get("device_tier", "mid") == "mid" and cfg.get("resolution") == "8x8":
+                    cfg["resolution"] = DEFAULT_CONFIG["resolution"]
+                tier = cfg.get("device_tier") if cfg.get("device_tier") in DEVICE_TIERS else "mid"
+                cfg.setdefault("brain_steps", DEVICE_TIERS[tier]["brain_steps"])
+                cfg["config_version"] = CONFIG_VERSION
+                ConfigManager.save_config(cfg)
             # Merge missing default keys
             for k, v in DEFAULT_CONFIG.items():
                 if k not in cfg:
                     cfg[k] = v
+            if cfg.get("resolution") not in RESOLUTION_PRESETS:
+                cfg["resolution"] = DEFAULT_CONFIG["resolution"]
+            if cfg.get("device_tier") not in DEVICE_TIERS:
+                cfg["device_tier"] = DEFAULT_CONFIG["device_tier"]
+            if cfg.get("brain_steps") not in (1, 2, 3):
+                cfg["brain_steps"] = DEVICE_TIERS[cfg["device_tier"]]["brain_steps"]
             return cfg
         except Exception:
             return DEFAULT_CONFIG.copy()
@@ -83,6 +107,7 @@ class ConfigManager:
             cfg["device_tier"] = tier
             cfg["resolution"] = DEVICE_TIERS[tier]["default_res"]
             cfg["use_color"] = DEVICE_TIERS[tier]["default_color"]
+            cfg["brain_steps"] = DEVICE_TIERS[tier]["brain_steps"]
             ConfigManager.save_config(cfg)
             return True
         return False
