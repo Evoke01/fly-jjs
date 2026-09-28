@@ -13,6 +13,12 @@ import cv2
 
 from fly_jjs.core.actions import ACTION_INDEX, NUM_ACTIONS, OPPOSITES
 
+# Odds (logit) of pressing a key with no particular reason to: about one frame in four.
+# Instincts, persistence, the brain's drive and learning all add to it. In arena fights
+# at difficulty 1.5 a flat -1.0 won 71-81%, -1.5 won 56% and -2.0 won 19%: a fly that
+# rarely retreats or blocks unprompted takes far more damage.
+REST_LOGIT = -1.0
+
 # How strongly an action that was on last frame tends to stay on (motor persistence).
 # Without it, independent coin flips every frame make movement stutter.
 PERSISTENCE = {"forward": 2.0, "left": 1.5, "back": 1.5, "right": 1.5, "block": 2.0,

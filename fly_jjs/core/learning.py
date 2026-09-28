@@ -1,12 +1,12 @@
 """How the fly learns from what happens in the game.
 
-The learner reads the fly's descending neurons (the brain's commands to the body) as a
-vector of firing rates `x` and turns it into key presses:
+The learner reads the fly's readout neurons (about 59,000, from the targets of the eyes
+down to the motor neurons) as a vector of firing rates `x` and turns it into key presses:
 
-* Actor: every action is an independent coin flip. Its odds come from the brain's own
-  motor populations (the innate drive, computed by the caller) plus learned weights on
-  the descending neurons. Sampling keeps the fly exploring instead of repeating one
-  move forever.
+* Actor: every action is an independent coin flip. Its odds are the innate odds
+  (computed by the caller: a resting level, instincts, motor persistence and the
+  brain's motor populations) plus learned weights on the readout neurons. Sampling
+  keeps the fly exploring instead of repeating one move forever.
 * Critic: a learned estimate of the reward that is coming, V(x).
 * Dopamine: the reward-prediction error  delta = r + gamma * V(x') - V(x),  which is
   what real dopamine neurons signal. It gates a three-factor rule (neuron activity x
@@ -53,7 +53,7 @@ def _fit(array, shape):
 
 
 class FlyLearner:
-    """Actor-critic over descending-neuron firing rates (values in 0..1)."""
+    """Actor-critic over readout-neuron firing rates (values in 0..1)."""
 
     def __init__(self, num_inputs, num_actions, lr=0.05, value_lr=0.1, imitation_lr=0.05,
                  gamma=0.95, lam=0.9, weight_decay=5e-5, max_logit=4.0, seed=None):

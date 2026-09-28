@@ -4,7 +4,7 @@ import numpy as np
 
 from fly_jjs.core.arena import M1, Arena, ArenaInput, _angle_to
 from fly_jjs.core.calibrate import calibration_from_boxes
-from fly_jjs.core.combat import DEFAULT_HP_BARS, Instincts, RewardSystem, bar_fill, persistence_logits
+from fly_jjs.core.combat import DEFAULT_HP_BARS, REST_LOGIT, Instincts, RewardSystem, bar_fill, persistence_logits
 from fly_jjs.core.actions import ACTION_NAMES, NUM_ACTIONS
 from fly_jjs.core.controls import CameraController, InputController
 from fly_jjs.core.learning import FlyLearner
@@ -109,11 +109,10 @@ class TestArenaWithoutBrain(unittest.TestCase):
         instinct = Instincts(instincts, seed=seed)
         rng = np.random.default_rng(seed)
         prev = np.zeros(NUM_ACTIONS, dtype=np.float32)
-        rest = np.full(NUM_ACTIONS, -1.5, dtype=np.float32)
         while not arena.done:
             img = arena.render()
             opp = tracker.update(img, arena.time)
-            z = rest + instinct.logits(opp, arena.width, 1.0, arena.time) + persistence_logits(prev)
+            z = REST_LOGIT + instinct.logits(opp, arena.width, 1.0, arena.time) + persistence_logits(prev)
             prev = (rng.random(NUM_ACTIONS) < 1 / (1 + np.exp(-np.clip(z, -4, 4)))).astype(np.float32)
             ctl.apply({ACTION_NAMES[i] for i in np.flatnonzero(prev)}, arena.time)
             cam.update((opp.dx, opp.dy) if opp.visible else None, arena.time)

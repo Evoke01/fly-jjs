@@ -54,6 +54,7 @@ class TestConnectomeIntegration(unittest.TestCase):
             self.assertTrue(set(injected.tolist()) <= visual, res)
 
     def test_play_loop_steps(self):
+        from fly_jjs.core.combat import REST_LOGIT
         from fly_jjs.core.learning import FlyLearner
         from fly_jjs.core.rl import NUM_ACTIONS, FlyBody
         from fly_jjs.core.vision import FlyEyes, detect_opponent
@@ -66,7 +67,8 @@ class TestConnectomeIntegration(unittest.TestCase):
             gray = img[:, :, :3].mean(axis=2).astype(np.uint8)
             opp, threat = detect_opponent(gray, img.shape[1], img.shape[0])
             rates = body.step(img, opp, threat, learner.dopamine)
-            innate, pop_rates = body.innate_drive(rates)
+            drive, pop_rates = body.innate_drive(rates)
+            innate = REST_LOGIT + drive
             mask, probs = learner.act(rates, innate)
             learner.update(rates, mask, reward=0.1, probs=probs)
             pressed += mask.sum()
@@ -77,6 +79,24 @@ class TestConnectomeIntegration(unittest.TestCase):
         self.assertGreater(body.fired, 0)
         self.assertGreater(pressed, 0)                   # the untrained fly does act
         self.assertLess(pressed, 40 * NUM_ACTIONS * 0.6)  # ...without mashing every key
+
+    def test_resting_motor_populations_do_not_bias_the_fly(self):
+        """Regression: the motor populations are arbitrary slices of the descending neurons.
+        Read against fixed thresholds, their resting rates set the odds of the moves anywhere
+        from -0.1 to -3.5, whatever happened in the fight."""
+        from fly_jjs.core.rl import FlyBody
+        from fly_jjs.core.vision import FlyEyes, detect_opponent
+        c = self.components
+        body = FlyBody(c, FlyEyes(c.brain, "64x48", use_color=True))
+        drives = []
+        for t in range(120):
+            img = scene(t)
+            gray = img[:, :, :3].mean(axis=2).astype(np.uint8)
+            opp, threat = detect_opponent(gray, img.shape[1], img.shape[0])
+            drives.append(body.innate_drive(body.step(img, opp, threat))[0])
+        settled = np.array(drives[60:])
+        self.assertLess(np.abs(settled.mean(axis=0)).max(), 1.5)    # no move favoured at rest
+        self.assertGreater(settled.std(axis=0).mean(), 0.01)       # but the brain still has a say
 
     def test_agent_fights_in_the_arena(self):
         from fly_jjs.core.agent import FlyAgent

@@ -11,7 +11,7 @@ from types import SimpleNamespace
 import numpy as np
 from flybrain import FeatureDetectors, FlyBrain, Trace
 
-from fly_jjs.core.actions import ACTION_NAMES, NUM_ACTIONS
+from fly_jjs.core.actions import NUM_ACTIONS
 
 READOUT_SUPERCLASSES = (
     "descending_neuron", "descending_neuron_tbc",
@@ -21,17 +21,14 @@ READOUT_SUPERCLASSES = (
     "efferent_ascending", "efferent_descending",
 )
 
-# Innate drive: when an action's motor population fires at its threshold rate, the
-# untrained fly presses that key half the time. INNATE_GAIN sets how sharply the odds
-# follow the population's rate; instincts and learning add to this.
-BASE_THRESHOLDS = {
-    "forward": 0.12, "left": 0.12, "back": 0.15, "right": 0.12,
-    "melee": 0.18,
-    "skill1": 0.22, "skill2": 0.22, "skill3": 0.22, "skill4": 0.22,
-    "dash": 0.20, "block": 0.18, "special": 0.25,
-    "sprint": 0.28, "awaken": 0.35, "jump": 0.30,
-}
+# Innate drive. The descending neurons are split into one population per action in the
+# order the connectome lists them, so how fast a population usually fires says nothing
+# about its action. (Read against fixed thresholds, those resting rates set each move's
+# odds anywhere from -0.1 to -3.5, whatever happened in the fight.) Each population is
+# compared with its own running baseline instead: firing above its usual rate raises its
+# key's odds by INNATE_GAIN per unit of rate, and firing at its usual rate adds nothing.
 INNATE_GAIN = 12.0
+BASELINE_RATE = 0.01    # per frame: a population's usual rate is learned over ~100 frames
 READOUT_TAU = 0.1       # seconds: neurons are read as a decaying spike trace
 DOPAMINE_DRIVE = 0.8    # voltage per step on dopamine neurons at full surprise
 
@@ -83,7 +80,7 @@ class FlyBody:
         self.num_dns = len(components.dns)
         self.trace = Trace(components.brain, idx=self.readout, tau=READOUT_TAU)
         self.rate_scale = 1.0 - float(self.trace.decay)   # trace -> spikes per step (0..1)
-        self.arousal = 0.0
+        self.pop_baseline = None
         self.fired = 0
         self.rates = np.zeros(len(self.readout), dtype=np.float32)
 
@@ -108,17 +105,14 @@ class FlyBody:
             fired = c.brain.step(inject=injections)
             self.rates = self.trace.observe(fired) * self.rate_scale
         self.fired = len(fired)
-        activity = float(np.mean(self.rates[:self.num_dns]))
-        self.arousal = min(self.arousal * 0.95 + activity * 0.15, 1.0)
         return self.rates
 
     def innate_drive(self, rates):
-        """Per-action logits from the descending-neuron motor populations, and their rates."""
+        """Per-action logits from the descending-neuron motor populations, and their rates.
+        The logits are zero while every population fires at its usual rate."""
         pop_rates = np.array([rates[p].mean() for p in self.c.populations], dtype=np.float32)
-        logits = np.empty(NUM_ACTIONS, dtype=np.float32)
-        for i, name in enumerate(ACTION_NAMES):
-            threshold = BASE_THRESHOLDS[name]
-            if name in ("forward", "left", "right", "melee"):
-                threshold *= 1.0 - self.arousal * 0.3
-            logits[i] = INNATE_GAIN * (pop_rates[i] - threshold)
+        if self.pop_baseline is None:
+            self.pop_baseline = pop_rates.copy()
+        logits = INNATE_GAIN * (pop_rates - self.pop_baseline)
+        self.pop_baseline += BASELINE_RATE * (pop_rates - self.pop_baseline)
         return logits, pop_rates

@@ -9,7 +9,7 @@ import numpy as np
 
 from fly_jjs.core.actions import ACTION_NAMES, NUM_ACTIONS
 from fly_jjs.core.brain import FlyBody
-from fly_jjs.core.combat import Instincts, PatternRecognizer, RewardSystem, persistence_logits
+from fly_jjs.core.combat import REST_LOGIT, Instincts, PatternRecognizer, RewardSystem, persistence_logits
 from fly_jjs.core.controls import CameraController, InputController
 from fly_jjs.core.learning import FlyLearner
 from fly_jjs.core.tracking import FAR_HEIGHT, NEAR_HEIGHT, SELF_ZONE, OpponentTracker
@@ -66,7 +66,7 @@ class FlyAgent:
 
         rates = self.body.step(img, opp, threat, self.learner.dopamine, pattern_burst)
         drive, pop_rates = self.body.innate_drive(rates)
-        innate = (drive
+        innate = (REST_LOGIT + drive
                   + self.instincts.logits(opponent, self.width, self.rewards.our_health, now)
                   + persistence_logits(self.prev_mask))
         return opponent, threat, rates, innate, pop_rates, pattern_burst
