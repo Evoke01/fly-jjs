@@ -10,12 +10,14 @@ from collections import deque
 import http.server
 import socketserver
 
+from fly_jjs.core.storage import USER_DIR
+
 YOUTUBE_URL = "https://youtu.be/zz2a9Q2Wru0?si=8yQpc-Fdlc3me4s8"
-AUDIO_DIR = os.path.expanduser("~/.fly_jjs/audio")
+AUDIO_DIR = os.path.join(USER_DIR, "audio")
 os.makedirs(AUDIO_DIR, exist_ok=True)
 AUDIO_FILE = os.path.join(AUDIO_DIR, "aizo_experiment.wav")
 
-DATA_DIR = os.path.expanduser("~/.fly_jjs/experiment_data")
+DATA_DIR = os.path.join(USER_DIR, "experiment_data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 _latest_brain_data = {}

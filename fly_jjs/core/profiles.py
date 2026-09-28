@@ -3,10 +3,15 @@ import shutil
 import time
 import json
 
-USER_DIR = os.path.expanduser("~/.fly_jjs")
-PROFILES_DIR = os.path.join(USER_DIR, "profiles")
-WEIGHTS_PATH = os.path.join(USER_DIR, "fly_weights.npy")
+from fly_jjs.core.storage import PROFILES_DIR, WEIGHTS_PATH, create_backup_of_weights, memory_files
+
 os.makedirs(PROFILES_DIR, exist_ok=True)
+
+
+def _clean_name(profile_name):
+    """Profile names become folder names: keep letters, digits, '_' and '-' only."""
+    return "".join([c for c in (profile_name or "") if c.isalnum() or c in ("_", "-")]).strip()
+
 
 class ProfileManager:
     """Manages saving, loading, listing, and exporting named fly brain profiles."""
@@ -39,7 +44,7 @@ class ProfileManager:
 
     @staticmethod
     def save_profile(profile_name, description=""):
-        profile_name = "".join([c for c in profile_name if c.isalnum() or c in ("_", "-")]).strip()
+        profile_name = _clean_name(profile_name)
         if not profile_name:
             return False, "Invalid profile name."
 
@@ -48,10 +53,14 @@ class ProfileManager:
 
         pdir = os.path.join(PROFILES_DIR, profile_name)
         os.makedirs(pdir, exist_ok=True)
-        wtarget = os.path.join(pdir, "fly_weights.npy")
         mtarget = os.path.join(pdir, "metadata.json")
 
-        shutil.copy2(WEIGHTS_PATH, wtarget)
+        for source, file_name in memory_files():
+            target = os.path.join(pdir, file_name)
+            if os.path.exists(source):
+                shutil.copy2(source, target)
+            elif os.path.exists(target):
+                os.remove(target)  # don't pair these weights with a stale critic
         meta = {
             "name": profile_name,
             "description": description,
@@ -64,25 +73,28 @@ class ProfileManager:
 
     @staticmethod
     def load_profile(profile_name):
-        pdir = os.path.join(PROFILES_DIR, profile_name)
+        name = _clean_name(profile_name)
+        pdir = os.path.join(PROFILES_DIR, name)
         wsource = os.path.join(pdir, "fly_weights.npy")
-        if not os.path.exists(wsource):
+        if not name or not os.path.exists(wsource):
             return False, f"Profile '{profile_name}' not found."
 
         # Backup existing current weights before replacing
-        if os.path.exists(WEIGHTS_PATH):
-            backup_dir = os.path.join(USER_DIR, "backups")
-            os.makedirs(backup_dir, exist_ok=True)
-            ts = time.strftime("%Y%m%d_%H%M%S")
-            shutil.copy2(WEIGHTS_PATH, os.path.join(backup_dir, f"fly_weights_preload_{ts}.npy"))
+        create_backup_of_weights(tag="preload")
 
-        shutil.copy2(wsource, WEIGHTS_PATH)
+        for target, file_name in memory_files():
+            source = os.path.join(pdir, file_name)
+            if os.path.exists(source):
+                shutil.copy2(source, target)
+            elif os.path.exists(target):
+                os.remove(target)  # profile predates the critic file: don't mix brains
         return True, f"Successfully loaded profile '{profile_name}' as active brain memory!"
 
     @staticmethod
     def delete_profile(profile_name):
-        pdir = os.path.join(PROFILES_DIR, profile_name)
-        if os.path.exists(pdir):
+        name = _clean_name(profile_name)
+        pdir = os.path.join(PROFILES_DIR, name)
+        if name and os.path.isdir(pdir):
             shutil.rmtree(pdir)
             return True, f"Deleted profile '{profile_name}'."
         return False, f"Profile '{profile_name}' does not exist."

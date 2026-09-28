@@ -2,8 +2,7 @@ import os
 import time
 import numpy as np
 
-USER_DIR = os.path.expanduser("~/.fly_jjs")
-WEIGHTS_PATH = os.path.join(USER_DIR, "fly_weights.npy")
+from fly_jjs.core.storage import WEIGHTS_PATH
 
 ACTION_NAMES = [
     "forward", "left", "back", "right",
