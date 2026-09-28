@@ -10,3 +10,4 @@ yt-dlp
 pygame-ce
 librosa
 soundfile
+rich
