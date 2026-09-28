@@ -1,6 +1,6 @@
-# 🪰 FlyBrain × Roblox: Jujutsu Shenanigans (v1.3.0)
+# 🪰 FlyBrain × Roblox: Jujutsu Shenanigans (v1.4.0)
 
-[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg?style=for-the-badge)](https://github.com/Evoke01/fly-jjs)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg?style=for-the-badge)](https://github.com/Evoke01/fly-jjs)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![YouTube](https://img.shields.io/badge/YouTube-@FakeEvoke-red?style=for-the-badge&logo=youtube)](https://www.youtube.com/@FakeEvoke)
@@ -14,7 +14,9 @@ Connect a real fruit fly's digital brain wiring (connectome) directly to **Roblo
 
 ## ⚡ Quick Rules for Best Performance
 1. **Shrink Roblox Window:** Make your Roblox window as small as possible on your desktop screen! Small windows drastically increase screen capture FPS and reaction time.
-2. **Train First (20+ Mins):** Run `[2] Train Mode (Watcher)` for **20+ minutes** so the fly can learn your combos and combat style before playing on its own.
+2. **Turn on Shift Lock** in Roblox, so moving the mouse turns the camera (that's how the fly aims).
+3. **Calibrate once:** run `[C] Calibrate` and drag boxes around your health bar (and your character). The fly's rewards come from reading those bars.
+4. **Train First (20+ Mins):** Run `[2] Train Mode (Watcher)` for **20+ minutes** so the fly can learn your combos and combat style before playing on its own. `[A] Arena` is a quick warm-up without Roblox.
 
 ---
 
@@ -22,14 +24,14 @@ Connect a real fruit fly's digital brain wiring (connectome) directly to **Roblo
 
 ```
 +-------------------+      +------------------------+      +------------------------+
-|  Roblox JJS Game  | ---> |  Compound Eyes          | ---> |  FlyBrain Connectome   |
-|  (Screen Capture) |      |  L/R eye, ~2,400 visual |      |  (166,700 neurons)     |
-+-------------------+      |  neurons, 8x8-320x240   |      +------------------------+
+|  Roblox JJS Game  | ---> |  Compound Eyes +       | ---> |  FlyBrain Connectome   |
+|  (Screen Capture) |      |  opponent tracker      |      |  (166,700 neurons)     |
++-------------------+      |  ~2,200 visual neurons |      +------------------------+
                            +------------------------+                  |
                                                                        v
 +-------------------+      +------------------------+      +------------------------+
-| Game Character    | <--- | Realtime Motor Keys    | <--- | Descending neurons +   |
-| (Punch, Dash, M1) |      | (W, A, S, D, Q, F, M1) |      | dopamine learning      |
+| Game Character    | <--- | Held keys, M1 combos,  | <--- | 59,310 neurons read +  |
+| (Punch, Dash, M1) |      | camera tracking        |      | instincts + dopamine   |
 +-------------------+      +------------------------+      +------------------------+
 ```
 
@@ -51,6 +53,8 @@ Here is what each mode in the menu does, explained in simple terms:
 | **`[ 8 ]`** | 🔬 **Self Diagnostics** | **System Self-Test:** Tests your connectome setup, the fly's eyes, and memory files to make sure everything works. |
 | **`[ 9 ]`** | 💡 **Explainer Guide** | **Beginner Guide:** Quick hype guide breaking down how the connectome plays Roblox JJS. |
 | **`[ M ]`** | 🧪 **Manual Reward Mode** | **Treat & Penalty Training:** While the fly fights, press `+` to give it a dopamine treat (Good!) or `-` for a penalty (Bad!). Works while Roblox has focus. |
+| **`[ A ]`** | 🏟️ **Arena** | **Simulated Fight:** Watch or train the fly against computer opponents in a JJS-style arena, no Roblox needed. |
+| **`[ C ]`** | 🎯 **Calibrate** | **Show the fly its HUD:** Drag boxes around your health bar, the opponent's, and your character, once. |
 | **`[ L ]`** | 📡 **Live Telemetry** | **Brain Monitor:** Open in a second terminal to watch a running Play/Train session live: motor outputs, dopamine, vision and rewards. |
 | **`[ U ]`** | 🔄 **Check for Updates** | **Pull Latest Code:** Fetch the latest updates directly from GitHub. |
 
@@ -78,6 +82,14 @@ Older versions copied the first 64 pixels of the screen onto 128 neurons. Above 
 5. Only what **stands out** gets through (a flat floor stays quiet, an opponent or a flash does not), and the eyes adapt to dark and bright scenes on their own.
 
 On a test arena, the fly's motor neurons now carry much more about the opponent than before: see the pull request for the numbers.
+
+## 🥊 How the Fly Fights
+
+- **It reads 59,310 neurons.** Every frame the whole connectome (166,700 neurons) runs; the fly's decisions are read from everything downstream of its eyes: visual projection neurons, the central brain, ascending and descending neurons, the nerve cord and motor neurons (it used to read only 1,314 descending neurons).
+- **It holds keys like a player.** W/A/S/D and block (F) stay held while the fly wants them, M1 clicks at a combo rhythm, skills/dash/jump are tapped, sprint is a W double-tap. (Before, every key was a one-frame tap, so the fly barely moved.) All keys are released when a session stops.
+- **It aims.** An opponent tracker follows one target over time (colour, brightness and motion, with the camera's own turning cancelled out), ignores your own character and the HUD, and estimates distance and incoming attacks. The camera turns toward the opponent smoothly and sweeps to search when nobody is in view.
+- **It has instincts.** Innate reflexes nudge its odds: close in when far, strike when in reach and facing them, block or dodge an incoming attack, circle to the side. Learning builds on top. (`"instincts"` in the config sets their strength; 0 turns them off.)
+- **It is rewarded for real fighting.** Damage dealt and taken (read from the health bars, chip damage included) and knockouts. The old per-frame bonuses for blocking near the opponent are gone: in the arena the fly learned to hold block forever to farm them.
 
 ## 🧪 How the Fly Learns
 
@@ -152,6 +164,12 @@ Interactive hype guide explaining how the fly brain plays JJS.
 
 ### `[M] Manual Reward Mode`
 Play Mode where you are the judge: press `+` (or `=`) for a treat and `-` for a penalty while the fly fights. The keys work while Roblox has focus.
+
+### `[A] Arena`
+A JJS-style 1v1 simulator: M1 combos, skills on cooldowns, block, dash, jump, and an opponent that approaches, telegraphs its strikes and throws projectiles. The fly fights with the exact brain, eyes, instincts and learning it uses in Roblox. Watch it, train it fast without a window, then load the arena brain for the real game from the same menu. It's simpler than JJS, so treat it as a warm-up and fine-tune in the game.
+
+### `[C] Calibrate`
+Takes a screenshot of your game and asks you to drag boxes around your health bar (while full), the opponent's health bar (if shown), and your own character. Saved to the config; everything works with defaults until then.
 
 ### `[L] Live Telemetry`
 Run `python main.py` in a **second terminal** and pick `[L]` while Play, Manual or Train mode runs in the first one.
