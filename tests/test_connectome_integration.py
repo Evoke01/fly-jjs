@@ -106,13 +106,13 @@ class TestConnectomeIntegration(unittest.TestCase):
         self.assertEqual(len(dash.layout["positions"]), c.brain.n)
         self.assertTrue(np.all(np.isfinite(dash.layout["positions"])))   # sensory neurons placed too
         casino = Casino(c, {"fear": 1.0}, bot="pro", mode="fast", seed=0, dashboard=dash, verbose=False)
-        casino.play_game(max_rounds=3)
+        casino.play_game()
         self.assertGreater(casino.rounds, 0)
         self.assertGreater(dash.state()["stats"]["spikes_per_s"], 0)
         # Full danger drives the real fear circuit, and the connectome carries it on to the
         # giant fibre, the escape neuron.
         fear = casino.fly.fear
-        fear.assess(life=1, stake=4, dread=1.0)
+        fear.assess(0, 20, rnd=3, stake=2, dread=1.0)
         for _ in range(15):
             casino.fly.step(board_image())
         self.assertGreater(fear.terror, 0.5)

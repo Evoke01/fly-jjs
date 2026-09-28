@@ -1,9 +1,11 @@
-"""The casino: the fly gambles its life at Higher or Lower, against a bot.
+"""The casino: a death match at Higher or Lower. Whoever loses gets shot.
 
 A card is dealt; each player says whether the next card will be higher or lower and
-bets some of their life on it (ties lose). Win and you gain what you bet; lose and you
-lose it. Lose all your life and you are killed. The stakes rise every ten rounds.
-Survive 40 rounds, or outlive the bot, and the fly walks free.
+bets chips on it (ties lose). Win and you gain what you bet, lose and you lose it. A
+game is three rounds, the last for double stakes. Then whoever has fewer chips is shot;
+if they are level, sudden-death rounds decide it. Run out of chips and you are shot on
+the spot. Alone at the table the fly plays the house: it is shot if it ends the game
+with fewer chips than it started with, and walks free with more.
 
 How the fly plays
 -----------------
@@ -15,17 +17,19 @@ How the fly plays
   one for "lower". After every round the chosen value moves toward what happened, in
   proportion to the surprise (delta = outcome - expected): the dopamine signal. It is
   sent back into the brain as reward (PAM neurons) or punishment (PPL1) dopamine.
-* It picks the side it values more (mostly), and bets big only when it is confident
-  the side will win.
-* It is afraid. Danger (how much of its life a loss could take, how close to death it
-  is, and how likely it thinks it is to lose on this card) drives its real fear
-  circuit: the LC4 and LPLC2 threat and looming detectors and the PPL1 punishment
-  neurons. The connectome carries that on to the giant fibre (DNp01), the neuron that
-  fires the escape jump. The terror meter is how hard that circuit fires: measured,
-  not made up. A terrified fly wants far more confidence before betting big, and a
-  loss teaches it more.
-* When a fly is killed, the next one takes its seat. It keeps what the others learned;
-  its brain activity starts fresh.
+* It picks the side it values more (mostly), and bets big when it is confident the
+  side will win.
+* It is afraid. Danger (how near the end of the game is, how far behind it is, and how
+  likely it thinks it is to lose on this card) drives its real fear circuit: the LC4
+  and LPLC2 threat and looming detectors and the PPL1 punishment neurons. The
+  connectome carries that on to the giant fibre (DNp01), the neuron that fires the
+  escape jump. The terror meter is how hard that circuit fires: measured, not made up.
+  The more terrified it was when it bet, the more a loss teaches it. (Terror does not
+  make it bet small: in a death match holding back only gets you shot.)
+* About to be shot, it sees the gun barrel coming at it: a looming dark disk, the
+  stimulus its looming detectors and giant fibre respond to. Once shot, its brain is no
+  longer run and falls silent. The next fly takes its seat; it keeps what the others
+  learned, and its brain activity starts fresh.
 
 This is a simulation of a connectome; "fear" here is the activity of the neurons that
 fire when real flies escape threats, not a claim about what a fly feels.
@@ -40,11 +44,11 @@ import cv2
 RANKS = 13
 RANK_NAMES = ("", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K")
 SUITS = "SHDC"
-START_LIFE = 10
-MAX_LIFE = 30          # room to pull ahead, so duels between good players rarely tie
+START_CHIPS = 10
 BIG_BET = 3          # a big bet risks three times the stake
-STAKE_EVERY = 10     # the stake goes up by one every ten rounds
-MAX_ROUNDS = 40      # survive this many rounds and the fly walks free
+ROUNDS = 3           # rounds in a game; then whoever is behind is shot
+FINAL_STAKE = 2      # the last round, and sudden death, are for double stakes
+SUDDEN_DEATH = 5     # still level after this many extra rounds: a draw, nobody is shot
 
 # The fly's eye view: 13 slots, ace on the far left and king on the far right.
 BOARD_W, BOARD_H = 208, 104
@@ -59,9 +63,12 @@ USUAL_RATE = 0.02    # the fly's usual brain state is followed over ~50 rounds
 PICKINESS = 4.0      # how sharply it prefers the side it values more
 EXPLORE = 0.03       # it still tries the other side at least this often
 
-# Betting: big when the chosen side's value (2 x win chance - 1) clears the bar.
-BIG_EDGE = 0.35      # calm: bet big when it expects to win at least ~68% of the time
-FEAR_EDGE = 0.45     # terrified: the bar rises to ~90%
+# Betting: big when the chosen side's value (2 x win chance - 1) clears the bar, that is
+# when it expects to win at least ~68% of the time. Fear does not make it hold back: in a
+# death match that only gets you shot. Played by the rules alone, a player that picks the
+# likelier side 90% of the time and bets like this beat the Rookie bot in 73% of games;
+# one that bet big only when near certain, in 60%.
+BIG_EDGE = 0.35
 BET_SHARPNESS = 8.0
 
 # Fear. Measured on the MaleCNS brain: at rest 4.5% of the fear circuit fires per 20 ms
@@ -74,12 +81,17 @@ PUNISH_DRIVE = 0.6   # PPL1
 FEAR_SMOOTHING = 0.25
 LOSS_AVERSION = 1.0  # full terror makes a loss count double
 
-# Brain steps (20 ms each) per phase of a round: (fast training, watching). The fly
-# looks at the card for THINK steps (it averages steps THINK_FROM..THINK), then fear
-# builds for FEAR steps before it bets. Those are the same in both modes, so both modes
-# play the same fly; watching only adds suspense and time to see the result.
-PHASES = {"blank": (2, 12), "think": (20, 20), "fear": (6, 6), "suspense": (0, 45), "reveal": (4, 55),
-          "death": (10, 160), "end": (4, 110)}
+# Brain steps (20 ms each) per phase: (fast training, watching). The fly looks at the
+# card for THINK steps (it averages steps THINK_FROM..THINK), then fear builds for FEAR
+# steps before it bets. Those are the same in both modes, so both modes play the same
+# fly; watching only adds suspense and time to see what happens. A new fly's brain first
+# settles for a second ("wake"): its activity starts from nothing, and looks taken before
+# it settles are unlike all the others. Flies get shot often, and without it the real
+# brain picked the likelier side 64% of the time after 200 rounds, instead of 86%. After
+# the last round the gun turns to the loser ("aim"), fires ("shot"), and a shot fly lies
+# "dead"; a fly that lives hits the "jackpot".
+PHASES = {"wake": (50, 50), "blank": (2, 12), "think": (20, 20), "fear": (6, 6), "suspense": (0, 45),
+          "reveal": (4, 60), "aim": (8, 80), "shot": (2, 50), "dead": (2, 110), "jackpot": (2, 230), "end": (2, 110)}
 THINK_FROM = 5
 
 BOTS = {
@@ -119,12 +131,23 @@ def board_image(card=None):
     return img
 
 
+def barrel_image(t):
+    """The gun turning on the fly, `t` from 0 to 1: a dark muzzle looming over the board."""
+    img = board_image()
+    centre = (BOARD_W // 2, BOARD_H // 2)
+    r = int(6 + t * t * BOARD_W * 0.45)
+    cv2.circle(img, centre, r + max(2, r // 5), (70, 70, 76, 255), -1)   # the barrel's rim
+    cv2.circle(img, centre, r, (0, 0, 0, 255), -1)                        # and its bore
+    return img
+
+
 class Seat:
-    """A player's life and this round's bet."""
+    """A player's chips and this round's bet."""
 
     def __init__(self, name):
         self.name = name
-        self.life = START_LIFE
+        self.chips = START_CHIPS
+        self.shot = False
         self.new_round()
 
     def new_round(self):
@@ -133,23 +156,24 @@ class Seat:
         self.result = None      # "win" / "lose"
 
     @property
-    def alive(self):
-        return self.life > 0
+    def broke(self):
+        return self.chips <= 0
 
     def place(self, higher, big, stake):
+        """Bet on a side. Nobody can bet more chips than they have: at most, all in."""
         self.choice = "higher" if higher else "lower"
-        self.bet = stake * (BIG_BET if big else 1)
+        self.bet = min(stake * (BIG_BET if big else 1), self.chips)
 
     def settle(self, card, nxt):
         """Pay out this round. Returns True if the bet won."""
         won = nxt > card if self.choice == "higher" else nxt < card
         self.result = "win" if won else "lose"
-        self.life = min(MAX_LIFE, self.life + self.bet) if won else max(0, self.life - self.bet)
+        self.chips += self.bet if won else -self.bet
         return won
 
     def as_dict(self):
-        return {"name": self.name, "life": self.life, "max": MAX_LIFE, "choice": self.choice,
-                "bet": self.bet, "result": self.result, "alive": self.alive}
+        return {"name": self.name, "chips": self.chips, "choice": self.choice, "bet": self.bet,
+                "result": self.result, "shot": self.shot}
 
 
 class Bot:
@@ -199,14 +223,15 @@ class Fear:
         self.escape_rate = 0.0
         self.terror = 0.0
 
-    def assess(self, life, stake, dread=0.0):
-        """How much danger the fly is in (0..1): a big loss could take `at_risk` of its
-        life, it is `low` of the way to death, and it gives itself a `dread` chance of
-        losing this round (0.5 when it has no idea)."""
-        at_risk = min(1.0, BIG_BET * stake / max(life, 1))
-        low = float(np.clip(1.0 - life / START_LIFE, 0.0, 1.0))
+    def assess(self, chips, rival, rnd, stake=1, dread=0.0, rounds=ROUNDS):
+        """How much danger the fly is in (0..1). After the last round whoever has fewer
+        chips is shot, so danger grows as the end nears (`urgency`) and with how far behind
+        `rival` the fly is (`behind`, 0.5 when level), plus the `dread` chance it gives
+        itself of losing this round (0.5 when it has no idea)."""
+        urgency = min(1.0, rnd / rounds)
+        behind = float(np.clip(0.5 + (rival - chips) / (2.0 * BIG_BET * stake), 0.0, 1.0))
         expected_loss = float(np.clip((dread - 0.2) / 0.8, 0.0, 1.0))
-        danger = 0.3 * at_risk + 0.35 * low + 0.5 * expected_loss
+        danger = urgency * (0.2 + 0.6 * behind) + 0.4 * expected_loss
         self.danger = float(np.clip(danger * self.strength, 0.0, 1.0))
         return self.danger
 
@@ -284,6 +309,7 @@ class CasinoFly:
         self.by_card = {}           # its latest look at each card, for the strategy chart
         self._sum, self._count = None, 0
         self.choice = 0
+        self.fresh = True           # its brain has not settled yet
 
     def step(self, img, dopamine=0.0, gather=False):
         x = self.body.step(img, (0, 0, 0), 0.0, dopamine, extra=self.fear.injections())
@@ -320,13 +346,11 @@ class CasinoFly:
         return float(np.clip((1.0 - np.clip(max(q[0], q[1]), -1.0, 1.0)) / 2.0, 0.0, 1.0))
 
     def decide(self):
-        """(higher, big, (p_higher, p_big)) for the dealt card. Terror raises the bar for
-        a big bet."""
+        """(higher, big, (p_higher, p_big)) for the dealt card: big when it is confident."""
         q, p_higher = self.odds()
         higher = bool(self.rng.random() < p_higher)
         self.choice = 0 if higher else 1
-        bar = BIG_EDGE + FEAR_EDGE * self.fear.terror * self.fear.strength
-        p_big = float(_sigmoid(BET_SHARPNESS * (q[self.choice] - bar)))
+        p_big = float(_sigmoid(BET_SHARPNESS * (q[self.choice] - BIG_EDGE)))
         big = bool(self.rng.random() < p_big)
         return higher, big, (p_higher, p_big)
 
@@ -357,6 +381,7 @@ class CasinoFly:
         self.eyes.reset()
         self.fear.reset()
         self._sum, self._count = None, 0
+        self.fresh = True
 
     def save(self, path):
         np.savez(path, w=self.values.w, b=self.values.b, looks=self.looks,
@@ -387,7 +412,7 @@ class StopCasino(Exception):
 
 
 class Casino:
-    """Runs games of Higher or Lower for the fly (and a bot), with an optional dashboard."""
+    """Runs death matches at Higher or Lower for the fly (and a bot), with an optional dashboard."""
 
     def __init__(self, components, cfg, bot="rookie", mode="show", learn=True, seed=None, readout=None,
                  dashboard=None, verbose=True):
@@ -402,12 +427,13 @@ class Casino:
         self.verbose = verbose
         self.generation = 1
         self.deaths = 0
-        self.freed = 0
+        self.draws = 0
         self.duels = {"fly": 0, "bot": 0, "draw": 0}
         self.rounds = 0
         self.games = 0
         self.steps = 0
         self.recent = deque(maxlen=100)     # (won, smart) per fly decision
+        self.history = deque(maxlen=10)     # this game's rounds, for the scoreboard
         self.log = deque(maxlen=6)
         self.banner = None
         self.table = {}
@@ -415,20 +441,35 @@ class Casino:
 
     # ---- brain time ---------------------------------------------------------------------
 
-    def _run(self, phase, img, dopamine=0.0):
+    def _run(self, phase, img, dopamine=0.0, dead=False):
+        """Run the brain through a phase. `img` is what the fly sees, or a function of the
+        phase's progress (0 to 1) for a moving picture. A dead fly's brain is not run: on
+        the dashboard it falls silent."""
         steps = PHASES[phase][0 if self.fast else 1]
         dt = float(getattr(self.fly.c.brain, "dt", 0.02))
+        silence = np.zeros(0, dtype=np.int64)
         for k in range(steps):
             tick = time.time()
-            self.fly.step(img, dopamine, gather=phase == "think" and k + 1 >= THINK_FROM)
+            frame = img(k / max(steps - 1, 1)) if callable(img) else img
+            if dead:
+                if self.dash is not None:
+                    self.dash.record(silence)
+            else:
+                self.fly.step(frame, dopamine, gather=phase == "think" and k + 1 >= THINK_FROM)
             self.steps += 1
             if self.dash is not None:
-                if self.steps % 3 == 0:
+                if k == 0 or self.steps % 3 == 0:        # every phase is shown, however short
+                    if callable(img):
+                        self.dash.show_eye(frame)
                     self._publish()
                 if "stop" in self.dash.take_pokes():
                     raise StopCasino
             if not self.fast:
                 time.sleep(max(0.0, dt - (time.time() - tick)))
+
+    def _show(self, img):
+        if self.dash is not None:
+            self.dash.show_eye(img)
 
     def _publish(self):
         if self.dash is None:
@@ -439,16 +480,18 @@ class Casino:
             fly.update(p_higher=round(self.probs[0], 3), p_big=round(self.probs[1], 3))
         self.dash.publish(
             mode="casino", pokes=[], log=list(self.log),
-            title=f"Fly #{self.generation}" + (f" vs {self.bot.name}" if self.bot else " alone at the table"),
+            title=f"Fly #{self.generation}" + (f" vs {self.bot.name}" if self.bot else " vs the house"),
             fear={"terror": round(fear.terror, 3), "danger": round(fear.danger, 3), "label": fear.label()},
-            casino={**self.table, "fly": fly, "stats": self.stats(), "banner": self.banner,
+            casino={**self.table, "fly": fly, "show": not self.fast, "stats": self.stats(), "banner": self.banner,
+                    "history": list(self.history),
                     "strategy": self.fly.strategy() if self.steps % 30 == 0 or "strategy" not in self.table
                     else self.table["strategy"]})
 
     def stats(self):
         won = [w for w, _ in self.recent]
         smart = [s for _, s in self.recent]
-        out = {"generation": self.generation, "deaths": self.deaths, "freed": self.freed, "rounds": self.rounds,
+        out = {"generation": self.generation, "games": self.games, "deaths": self.deaths,
+               "survived": self.games - self.deaths, "draws": self.draws, "rounds": self.rounds,
                "smart_pct": round(100 * float(np.mean(smart)), 1) if smart else None,
                "winrate_pct": round(100 * float(np.mean(won)), 1) if won else None}
         if self.bot:
@@ -460,33 +503,49 @@ class Casino:
         if self.verbose and not self.fast:
             print(f"[Casino] {text}")
 
+    def _deal(self):
+        return int(self.rng.integers(1, RANKS + 1)), SUITS[self.rng.integers(4)]
+
     # ---- one game -----------------------------------------------------------------------
 
-    def play_game(self, max_rounds=MAX_ROUNDS):
-        """Play until the fly dies, the bot dies, or the rounds run out. Returns the outcome."""
+    def play_game(self, rounds=ROUNDS):
+        """One death match. Returns the outcome: "survived" (the bot was shot, or the fly
+        beat the house), "shot" (the fly was), "both shot" or "draw"."""
         fly = Seat(f"Fly #{self.generation}")
         bot = Seat(self.bot.name) if self.bot else None
-        card, suit = int(self.rng.integers(1, RANKS + 1)), SUITS[self.rng.integers(4)]
+        seats = [fly] + ([bot] if bot else [])
+        card, suit = self._deal()
         self.banner = None
-        outcome = None
-        for rnd in range(max_rounds):
-            stake = 1 + rnd // STAKE_EVERY
-            fly.new_round()
-            if bot:
-                bot.new_round()
+        self.history.clear()
+        if self.fly.fresh:
+            self.table.update({"game": self.games + 1, "round": 1, "rounds": rounds, "stake": 1, "phase": "wake",
+                               "target": None, "start_chips": START_CHIPS, "big_bet": BIG_BET,
+                               "card": None, "card_suit": None, "next": None, "next_suit": None,
+                               "fly": fly.as_dict(), "bot": bot.as_dict() if bot else None})
+            self.fly.fear.danger = 0.0
+            self._run("wake", board_image())
+            self.fly.fresh = False
+        rnd = 0
+        while True:
+            rnd += 1
+            final = rnd >= rounds
+            stake = FINAL_STAKE if final else 1
+            for seat in seats:
+                seat.new_round()
             self.probs = None
-            self.table.update({"round": rnd + 1, "max_rounds": max_rounds, "stake": stake, "phase": "think",
+            self.table.update({"game": self.games + 1, "round": rnd, "rounds": rounds, "stake": stake,
+                               "phase": "think", "target": None, "start_chips": START_CHIPS, "big_bet": BIG_BET,
                                "card": card, "card_suit": suit, "next": None, "next_suit": None,
                                "fly": fly.as_dict(), "bot": bot.as_dict() if bot else None})
-            self.fly.fear.assess(fly.life, stake)
+            rival = bot.chips if bot else START_CHIPS
+            self.fly.fear.assess(fly.chips, rival, rnd, stake, rounds=rounds)
             self._run("blank", board_image())
             seen = board_image(card)
-            if self.dash is not None:
-                self.dash.show_eye(seen)
+            self._show(seen)
             self._run("think", seen)
             self.fly.perceive(card)
             # Its expectation of this card sets in, and a bad card is frightening.
-            self.fly.fear.assess(fly.life, stake, dread=self.fly.dread())
+            self.fly.fear.assess(fly.chips, rival, rnd, stake, dread=self.fly.dread(), rounds=rounds)
             self._run("fear", seen)
 
             higher, big, self.probs = self.fly.decide()
@@ -497,80 +556,110 @@ class Casino:
             self.table.update(phase="wait", fly=fly.as_dict(), bot=bot.as_dict() if bot else None)
             self._run("suspense", seen)
 
-            nxt, nsuit = int(self.rng.integers(1, RANKS + 1)), SUITS[self.rng.integers(4)]
+            nxt, nsuit = self._deal()
             won = fly.settle(card, nxt)
             self.recent.append((won, card == (RANKS + 1) // 2 or higher == likelier_higher(card)))
             if bot:
                 bot.settle(card, nxt)
             self.rounds += 1
             dopamine = self.fly.outcome(won, terror_at_bet)
+            self.history.append({"round": rnd, "card": card, "next": nxt,
+                                 "fly": {"choice": fly.choice, "bet": fly.bet, "won": won},
+                                 "bot": {"choice": bot.choice, "bet": bot.bet, "won": bot.result == "win"}
+                                 if bot else None})
 
             self._say(f"{fly.name}: {RANK_NAMES[card]}, {fly.choice} for {fly.bet}. {RANK_NAMES[nxt]} came, "
-                      f"{'won' if won else 'lost'}. Life {fly.life}.")
+                      f"{'won' if won else 'lost'}. {fly.chips} chips.")
             self.table.update(phase="reveal", next=nxt, next_suit=nsuit, fly=fly.as_dict(),
                               bot=bot.as_dict() if bot else None)
-            self.fly.fear.assess(fly.life, stake)
+            rival = bot.chips if bot else START_CHIPS
+            self.fly.fear.assess(fly.chips, rival, rnd, stake, rounds=rounds)
             reveal = board_image(nxt)
-            if self.dash is not None:
-                self.dash.show_eye(reveal)
+            self._show(reveal)
             self._run("reveal", reveal, dopamine=dopamine)
-
-            if not fly.alive:
-                outcome = "draw" if bot and not bot.alive else "killed"
-                break
-            if bot and not bot.alive:
-                outcome = "beat bot"
-                break
             card, suit = nxt, nsuit
+            if any(seat.broke for seat in seats) or (final and fly.chips != rival) or rnd >= rounds + SUDDEN_DEATH:
+                break
+
+        rival = bot.chips if bot else START_CHIPS
+        if fly.broke and bot is not None and bot.broke:
+            outcome = "both shot"
+        elif fly.broke or fly.chips < rival:
+            outcome = "shot"
+        elif (bot is not None and bot.broke) or fly.chips > rival:
+            outcome = "survived"
         else:
-            if bot:
-                outcome = "beat bot" if fly.life > bot.life else ("draw" if fly.life == bot.life else "outlasted")
-            else:
-                outcome = "freed"
+            outcome = "draw"
         self._finish(outcome, fly, bot)
         return outcome
+
+    def _why(self, seat, fly, bot):
+        """Why a player is being shot."""
+        if seat.broke:
+            return f"{seat.name} ran out of chips"
+        if bot is None:
+            return f"{seat.name} ended with {seat.chips} chips, fewer than the {START_CHIPS} it started with"
+        other = bot if seat is fly else fly
+        return f"{seat.name} was behind, {seat.chips} to {other.chips}"
 
     def _finish(self, outcome, fly, bot):
         self.games += 1
         if bot:
-            key = {"beat bot": "fly", "killed": "bot", "outlasted": "bot", "draw": "draw"}.get(outcome, "draw")
-            self.duels[key] += 1
+            self.duels[{"survived": "fly", "shot": "bot"}.get(outcome, "draw")] += 1
+        seats = {"fly": fly, "bot": bot}
+        targets = {"shot": ["fly"], "both shot": ["fly", "bot"], "survived": ["bot"] if bot else []}.get(outcome, [])
         empty = board_image()
-        rounds = self.table["round"]
-        if outcome == "killed":
-            self.deaths += 1
-            self.banner = {"kind": "dead", "title": "Killed",
-                           "detail": f"{fly.name} lost its last life in round {rounds}. "
-                                     f"Fly #{self.generation + 1} takes the seat and keeps what was learned."}
-            self._say(f"{fly.name} killed in round {rounds}. Fly #{self.generation + 1} takes the seat.")
-            # Terror at its peak: the whole fear circuit and the punishment neurons fire.
-            self.fly.fear.danger = max(self.fly.fear.strength, 0.5) if self.fly.fear.strength else 0.0
-            self.table.update(phase="dead")
-            self._run("death", empty, dopamine=-1.0)
-            self.generation += 1
-            self.fly.new_life(int(self.rng.integers(1 << 30)))
-        else:
-            if outcome == "freed":
-                self.freed += 1
-            bot_name = self.bot.name if self.bot else "the bot"
-            self.banner = {
-                "freed": {"kind": "good", "title": "Free", "detail": f"{fly.name} survived {rounds} rounds."},
-                "beat bot": {"kind": "good", "title": "Fly wins",
-                             "detail": f"{fly.name} {'outlived' if bot and not bot.alive else 'out-gambled'} "
-                                       f"{bot_name} ({fly.life} to {bot.life if bot else 0} life)."},
-                "outlasted": {"kind": "bad", "title": f"{bot_name} wins",
-                              "detail": f"More life after {rounds} rounds ({bot.life if bot else 0} to {fly.life})."},
-                "draw": {"kind": "neutral", "title": "Draw", "detail": f"Level after {rounds} rounds."},
-            }.get(outcome, {"kind": "neutral", "title": outcome, "detail": ""})
-            self._say(f"{self.banner['title']}. {self.banner['detail']}")
+        next_fly = f"Fly #{self.generation + 1} takes the seat and keeps what was learned."
+        if targets:
+            why = " and ".join(self._why(seats[t], fly, bot) for t in targets)
+            self._say(f"{why}. The gun turns to {'them' if len(targets) > 1 else 'it'}.")
+            self.table.update(phase="aim", target=targets)
+            if "fly" in targets:
+                # It sees the barrel coming at it, and its fear circuit fires as hard as it can.
+                fear = self.fly.fear
+                fear.danger = max(fear.strength, 0.5) if fear.strength else 0.0
+                self._run("aim", barrel_image, dopamine=-0.5)
+            else:
+                self._run("aim", empty)
+            for t in targets:
+                seats[t].shot = True
+            self.table.update(phase="shot", fly=fly.as_dict(), bot=bot.as_dict() if bot else None)
+            if "fly" in targets:
+                self.deaths += 1
+                self._run("shot", empty, dead=True)
+                self.banner = {"kind": "dead", "title": "Both shot" if len(targets) > 1 else "Shot",
+                               "detail": f"{why}. {next_fly}"}
+                self._say(f"{fly.name} was shot. {next_fly}")
+                self.table.update(phase="dead")
+                self._run("dead", empty, dead=True)
+                self.generation += 1
+                self.fly.new_life(int(self.rng.integers(1 << 30)))
+            else:
+                self.fly.fear.danger = 0.0
+                self._run("shot", empty, dopamine=1.0)     # relief: the gun went off, and not at the fly
+        if outcome == "survived":
+            detail = (f"{self._why(bot, fly, bot)}{'' if bot.broke else ','} and got shot. {fly.name} lives." if bot else
+                      f"{fly.name} beat the house, {fly.chips} chips from {START_CHIPS}, and walks free.")
+            self.banner = {"kind": "jackpot", "title": "Jackpot", "detail": detail}
+            self._say(detail)
             self.fly.fear.danger = 0.0
-            self.table.update(phase="over")
+            self.table.update(phase="jackpot")
+            self._run("jackpot", empty, dopamine=0.5)
+        elif outcome == "draw":
+            self.draws += 1
+            rival = bot.chips if bot else START_CHIPS
+            self.banner = {"kind": "neutral", "title": "Draw",
+                           "detail": f"Still level, {fly.chips} to {rival}, after sudden death. The gun stays down."}
+            self._say(self.banner["detail"])
+            self.fly.fear.danger = 0.0
+            self.table.update(phase="end")
             self._run("end", empty)
         if self.verbose:
             s = self.stats()
-            print(f"[Casino] Game {self.games}: {outcome.upper():9s} | round {self.table['round']:2d} | "
-                  f"smart picks {s['smart_pct']}% | wins {s['winrate_pct']}% | deaths {self.deaths}"
-                  + (f" | duels fly {self.duels['fly']}-{self.duels['bot']} bot" if self.bot else ""))
+            print(f"[Casino] Game {self.games}: {outcome.upper():9s} | {self.table['round']} rounds | "
+                  f"chips {fly.chips}" + (f" vs {bot.chips}" if bot else "")
+                  + f" | smart picks {s['smart_pct']}% | flies shot {self.deaths}"
+                  + (f" | games fly {self.duels['fly']}-{self.duels['bot']} bot" if self.bot else ""))
         self.banner = None
 
 
@@ -581,8 +670,9 @@ def casino_memory_path():
 
 def run_casino(games=None, mode="show", bot="rookie", fear=None, learn=True, seed=None, readout=None,
                dashboard=True, open_browser=True, memory_path=None, verbose=True):
-    """Let the fly gamble. `mode` "show" plays in real time for watching; "fast" trains.
-    Runs `games` games (None: until stopped). Returns the Casino with its statistics."""
+    """Let the fly play death matches. `mode` "show" plays in real time for watching;
+    "fast" trains. Runs `games` games (None: until stopped). Returns the Casino with its
+    statistics."""
     from fly_jjs.core.brain import get_brain_components
     from fly_jjs.core.config import ConfigManager
     from fly_jjs.core.dashboard import DEFAULT_PORT, BrainDashboard
@@ -600,9 +690,9 @@ def run_casino(games=None, mode="show", bot="rookie", fear=None, learn=True, see
     path = memory_path or casino_memory_path()
     os.makedirs(os.path.dirname(path), exist_ok=True)
     casino.fly.load(path)
-    print("[Casino] Fly #1 sits down" + (f" against the {casino.bot.name}" if casino.bot else "")
-          + f". Fear strength {casino.fly.fear.strength:g}. Stop with Ctrl+C"
-          + (" or Stop on the page." if dash else "."))
+    print("[Casino] Fly #1 sits down" + (f" against the {casino.bot.name}" if casino.bot else " against the house")
+          + f". {ROUNDS} rounds a game; whoever is behind at the end gets shot. Fear strength "
+          f"{casino.fly.fear.strength:g}. Stop with Ctrl+C" + (" or Stop on the page." if dash else "."))
     try:
         while games is None or casino.games < games:
             casino.play_game()

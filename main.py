@@ -65,7 +65,7 @@ def print_rich_menu():
     table.add_row("[ A ]", "🏟️ Arena", "Watch & train the fly in a simulated JJS fight")
     table.add_row("[ C ]", "🎯 Calibrate", "Show the fly your health bars & your character")
     table.add_row("[ B ]", "🧠 3D Brain", "Every neuron live in your browser; poke the fly")
-    table.add_row("[ G ]", "🎰 Casino", "The fly gambles its life vs a bot (terror meter)")
+    table.add_row("[ G ]", "🎰 Casino", "Card death match vs a bot: the loser gets shot")
     table.add_row("[ L ]", "📡 Live Telemetry", "Watch a running Play/Train session (2nd terminal)")
     table.add_row("[ U ]", "🔄 Check Updates", "Pull latest updates directly from GitHub")
     table.add_row("[ 0 ]", "❌ Exit System", "Shut down FlyBrain simulator")
@@ -107,7 +107,7 @@ def print_fallback_menu():
     print("  [ A ] 🏟️ Arena (Watch & Train in a Simulated Fight)")
     print("  [ C ] 🎯 Calibrate Health Bars & Your Character")
     print("  [ B ] 🧠 3D Brain (Every Neuron Live in Your Browser)")
-    print("  [ G ] 🎰 Casino (The Fly Gambles Its Life vs a Bot)")
+    print("  [ G ] 🎰 Casino (Card Death Match: the Loser Gets Shot)")
     print("  [ L ] 📡 Live Brain Telemetry (watch a running session)")
     print("  [ U ] 🔄 Check for Updates")
     print("  [ 0 ] ❌ Exit System\n")
@@ -241,11 +241,12 @@ def casino_menu():
         fear = cfg.get("fear", 1.0)
         mood = "fearless" if fear == 0 else ("terrified" if fear >= 2 else "normal")
         clear_screen()
-        print("\x1b[38;5;213m  [+] Casino: the fly gambles its life at Higher or Lower\x1b[0m\n")
-        print("  A card is dealt and the fly bets some of its life that the next card will be")
-        print("  higher or lower. If it loses all its life it is killed, and the next fly takes")
-        print("  its seat, keeping what the others learned. The 3D brain view opens in your")
-        print("  browser with the terror meter, read from the fly's real fear circuit.\n")
+        print("\x1b[38;5;213m  [+] Casino: a death match at Higher or Lower\x1b[0m\n")
+        print("  Three rounds of betting chips on whether the next card is higher or lower, the")
+        print("  last for double stakes. Then whoever has fewer chips gets shot. When the fly is")
+        print("  shot, the next fly takes its seat, keeping what the others learned. The 3D brain")
+        print("  view opens in your browser with the terror meter, read from the fly's real fear")
+        print("  circuit.\n")
         print(f"  Opponent: {BOTS.get(bot, 'nobody (the fly plays alone)')}   |   Fear: {fear:g} ({mood})\n")
         print("  [1] Watch the fly gamble (real time)")
         print("  [2] Train fast")
@@ -259,12 +260,12 @@ def casino_menu():
             run_casino(mode="show", bot=opponent)
             input("\n  Press Enter to return...")
         elif sub == '2':
-            raw = input("  How many games? (Enter = 30): ").strip()
-            games = int(raw) if raw.isdigit() and int(raw) > 0 else 30
+            raw = input("  How many games? (Enter = 100, about 330 rounds): ").strip()
+            games = int(raw) if raw.isdigit() and int(raw) > 0 else 100
             casino = run_casino(games=games, mode="fast", bot=opponent)
             s = casino.stats()
-            print(f"\n  {casino.rounds} rounds: smart picks {s['smart_pct']}%, deaths {casino.deaths}, "
-                  f"walked free {casino.freed}.")
+            print(f"\n  {casino.games} games, {casino.rounds} rounds: smart picks {s['smart_pct']}%, "
+                  f"shot {s['deaths']} times, survived {s['survived']}.")
             input("\n  Press Enter to return...")
         elif sub == '3':
             cfg["casino_bot"] = CASINO_BOTS[(CASINO_BOTS.index(bot) + 1) % len(CASINO_BOTS)] if bot in CASINO_BOTS else "rookie"

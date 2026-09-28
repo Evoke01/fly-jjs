@@ -35,7 +35,7 @@ Instead of using basic bots, we connected the **actual 3D brain wiring map (conn
 - **🏟️ Arena `[A]`:** Watch and train the fly in a simulated JJS fight, no Roblox needed.
 - **🎯 Calibrate `[C]`:** Show the fly where your health bars and your character are, once.
 - **🧠 3D Brain `[B]`:** All 166,700 neurons live in your browser; poke the fly and watch it react.
-- **🎰 Casino `[G]`:** The fly gambles its life vs a bot, with a terror meter read from its real fear circuit.
+- **🎰 Casino `[G]`:** A card death match vs a bot: three rounds, then whoever is behind gets shot. Terror meter read from its real fear circuit.
 
 ---
 
