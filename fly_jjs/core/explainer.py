@@ -34,6 +34,8 @@ Instead of using basic bots, we connected the **actual 3D brain wiring map (conn
 - **📡 Live Telemetry `[L]`:** Watch a running session's brain from a second terminal.
 - **🏟️ Arena `[A]`:** Watch and train the fly in a simulated JJS fight, no Roblox needed.
 - **🎯 Calibrate `[C]`:** Show the fly where your health bars and your character are, once.
+- **🧠 3D Brain `[B]`:** All 166,700 neurons live in your browser; poke the fly and watch it react.
+- **🎰 Casino `[G]`:** The fly gambles its life vs a bot, with a terror meter read from its real fear circuit.
 
 ---
 
@@ -62,5 +64,6 @@ Instead of using basic bots, we connected the **actual 3D brain wiring map (conn
   • Dopamine = surprise (reward-prediction-error learning)
   • Reads 59,310 neurons; fighting instincts; held keys & camera tracking
   • Manual Treat/Penalty Mode [M], Live Telemetry [L], Arena [A], Calibrate [C]
+  • 3D Brain [B]: every neuron live in the browser | Casino [G]: gambling with fear
   """)
         input("  Press Enter to return to main menu...")

@@ -19,6 +19,10 @@ DEFAULT_CONFIG = {
     "camera_mode": "shiftlock",   # "shiftlock": move the mouse; "hold_right": hold right button to turn
     "opponent_near_height": 0.20, # opponent height / window height at melee range
     "opponent_far_height": 0.06,  # ...and far away (sets the fly's sense of distance)
+    "dashboard": False,           # open the 3D brain view in the browser during Play mode
+    "dashboard_port": 8765,       # local port of the 3D brain view (127.0.0.1 only)
+    "fear": 1.0,                  # casino: 0 = fearless, 1 = normal, 2 = terrified
+    "casino_bot": "rookie",       # casino opponent: "random", "rookie", "pro" (or "none")
 }
 
 # The frame is shrunk to this grid before the fly's eyes compute contrast, colour and
@@ -95,6 +99,14 @@ class ConfigManager:
                 cfg["readout"] = DEFAULT_CONFIG["readout"]
             if not isinstance(cfg.get("instincts"), (int, float)):
                 cfg["instincts"] = DEFAULT_CONFIG["instincts"]
+            if not isinstance(cfg.get("dashboard"), bool):
+                cfg["dashboard"] = DEFAULT_CONFIG["dashboard"]
+            if not isinstance(cfg.get("dashboard_port"), int) or not 1024 <= cfg["dashboard_port"] <= 65535:
+                cfg["dashboard_port"] = DEFAULT_CONFIG["dashboard_port"]
+            if not isinstance(cfg.get("fear"), (int, float)) or not 0 <= cfg["fear"] <= 3:
+                cfg["fear"] = DEFAULT_CONFIG["fear"]
+            if cfg.get("casino_bot") not in ("random", "rookie", "pro", "none"):
+                cfg["casino_bot"] = DEFAULT_CONFIG["casino_bot"]
             return cfg
         except Exception:
             return DEFAULT_CONFIG.copy()

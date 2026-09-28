@@ -64,6 +64,8 @@ def print_rich_menu():
     table.add_row("[ M ]", "🧪 Manual Reward Mode", "Give manual Dopamine (+) or Punishment (-)")
     table.add_row("[ A ]", "🏟️ Arena", "Watch & train the fly in a simulated JJS fight")
     table.add_row("[ C ]", "🎯 Calibrate", "Show the fly your health bars & your character")
+    table.add_row("[ B ]", "🧠 3D Brain", "Every neuron live in your browser; poke the fly")
+    table.add_row("[ G ]", "🎰 Casino", "The fly gambles its life vs a bot (terror meter)")
     table.add_row("[ L ]", "📡 Live Telemetry", "Watch a running Play/Train session (2nd terminal)")
     table.add_row("[ U ]", "🔄 Check Updates", "Pull latest updates directly from GitHub")
     table.add_row("[ 0 ]", "❌ Exit System", "Shut down FlyBrain simulator")
@@ -104,6 +106,8 @@ def print_fallback_menu():
     print("  [ M ] 🧪 Manual Reward Mode (Treat / Penalty)")
     print("  [ A ] 🏟️ Arena (Watch & Train in a Simulated Fight)")
     print("  [ C ] 🎯 Calibrate Health Bars & Your Character")
+    print("  [ B ] 🧠 3D Brain (Every Neuron Live in Your Browser)")
+    print("  [ G ] 🎰 Casino (The Fly Gambles Its Life vs a Bot)")
     print("  [ L ] 📡 Live Brain Telemetry (watch a running session)")
     print("  [ U ] 🔄 Check for Updates")
     print("  [ 0 ] ❌ Exit System\n")
@@ -194,9 +198,10 @@ def arena_menu():
         print("  [2] Train fast without a window")
         print("  [3] Use the arena brain in the game (your current brain is backed up)")
         print("  [4] Back")
+        print("  [5] Watch with the 3D brain view open in your browser")
         sub = input("\n  Select option > ").strip()
-        if sub == '1':
-            run_arena(fights=3, learn=True, watch=True)
+        if sub in ('1', '5'):
+            run_arena(fights=3, learn=True, watch=True, dashboard=sub == '5')
             input("\n  Press Enter to return...")
         elif sub == '2':
             raw = input("  How many fights? (Enter = 20): ").strip()
@@ -220,6 +225,68 @@ def arena_menu():
                 print(f"\n  {msg}")
             input("\n  Press Enter to return...")
         elif sub == '4':
+            break
+
+
+CASINO_BOTS = ("rookie", "pro", "random", "none")
+
+
+def casino_menu():
+    import shutil
+    from fly_jjs.core.casino import BOTS, casino_memory_path, run_casino
+    from fly_jjs.core.storage import BACKUPS_DIR
+    while True:
+        cfg = ConfigManager.load_config()
+        bot = cfg.get("casino_bot", "rookie")
+        fear = cfg.get("fear", 1.0)
+        mood = "fearless" if fear == 0 else ("terrified" if fear >= 2 else "normal")
+        clear_screen()
+        print("\x1b[38;5;213m  [+] Casino: the fly gambles its life at Higher or Lower\x1b[0m\n")
+        print("  A card is dealt and the fly bets some of its life that the next card will be")
+        print("  higher or lower. If it loses all its life it is killed, and the next fly takes")
+        print("  its seat, keeping what the others learned. The 3D brain view opens in your")
+        print("  browser with the terror meter, read from the fly's real fear circuit.\n")
+        print(f"  Opponent: {BOTS.get(bot, 'nobody (the fly plays alone)')}   |   Fear: {fear:g} ({mood})\n")
+        print("  [1] Watch the fly gamble (real time)")
+        print("  [2] Train fast")
+        print("  [3] Change opponent (Rookie, Pro, Random, nobody)")
+        print("  [4] Change fear (0 fearless, 1 normal, 2 terrified)")
+        print("  [5] Forget what the casino flies learned (kept as a backup)")
+        print("  [6] Back")
+        sub = input("\n  Select option > ").strip()
+        opponent = None if bot == "none" else bot
+        if sub == '1':
+            run_casino(mode="show", bot=opponent)
+            input("\n  Press Enter to return...")
+        elif sub == '2':
+            raw = input("  How many games? (Enter = 30): ").strip()
+            games = int(raw) if raw.isdigit() and int(raw) > 0 else 30
+            casino = run_casino(games=games, mode="fast", bot=opponent)
+            s = casino.stats()
+            print(f"\n  {casino.rounds} rounds: smart picks {s['smart_pct']}%, deaths {casino.deaths}, "
+                  f"walked free {casino.freed}.")
+            input("\n  Press Enter to return...")
+        elif sub == '3':
+            cfg["casino_bot"] = CASINO_BOTS[(CASINO_BOTS.index(bot) + 1) % len(CASINO_BOTS)] if bot in CASINO_BOTS else "rookie"
+            ConfigManager.save_config(cfg)
+        elif sub == '4':
+            raw = input("  Fear strength 0-2 (0 fearless, 1 normal, 2 terrified): ").strip()
+            try:
+                cfg["fear"] = min(2.0, max(0.0, float(raw)))
+                ConfigManager.save_config(cfg)
+            except ValueError:
+                pass
+        elif sub == '5':
+            path = casino_memory_path()
+            if os.path.exists(path):
+                os.makedirs(BACKUPS_DIR, exist_ok=True)
+                backup = os.path.join(BACKUPS_DIR, time.strftime("casino_memory_%Y%m%d_%H%M%S.npz"))
+                shutil.move(path, backup)
+                print(f"\n  The casino flies start from scratch. Old memory saved to {backup}")
+            else:
+                print("\n  Nothing to forget yet.")
+            input("\n  Press Enter to return...")
+        elif sub == '6':
             break
 
 
@@ -360,6 +427,18 @@ def main():
             from fly_jjs.core.calibrate import run_calibration
             run_calibration()
             input("\n  Press Enter to return to the main menu...")
+
+        elif choice == 'b':
+            clear_screen()
+            print("\x1b[38;5;51m  [+] 3D Brain: all 166,700 neurons, live in your browser\x1b[0m\n")
+            print("  Drag to turn the brain, scroll to zoom. The buttons poke the fly: show it a")
+            print("  looming shadow, a flash of light, or release reward/punishment dopamine.\n")
+            from fly_jjs.core.dashboard import run_brain_viewer
+            run_brain_viewer()
+            input("\n  Press Enter to return to the main menu...")
+
+        elif choice == 'g':
+            casino_menu()
 
         elif choice == 'l':
             clear_screen()

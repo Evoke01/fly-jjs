@@ -55,6 +55,8 @@ Here is what each mode in the menu does, explained in simple terms:
 | **`[ M ]`** | 🧪 **Manual Reward Mode** | **Treat & Penalty Training:** While the fly fights, press `+` to give it a dopamine treat (Good!) or `-` for a penalty (Bad!). Works while Roblox has focus. |
 | **`[ A ]`** | 🏟️ **Arena** | **Simulated Fight:** Watch or train the fly against computer opponents in a JJS-style arena, no Roblox needed. |
 | **`[ C ]`** | 🎯 **Calibrate** | **Show the fly its HUD:** Drag boxes around your health bar, the opponent's, and your character, once. |
+| **`[ B ]`** | 🧠 **3D Brain** | **Every Neuron, Live:** All 166,700 neurons in 3D in your browser, lighting up as they fire. Poke the fly with a looming shadow, a flash, or dopamine. |
+| **`[ G ]`** | 🎰 **Casino** | **The Fly Gambles Its Life:** Higher or Lower against a bot, with its life as the stake and a terror meter read from its real fear circuit. |
 | **`[ L ]`** | 📡 **Live Telemetry** | **Brain Monitor:** Open in a second terminal to watch a running Play/Train session live: motor outputs, dopamine, vision and rewards. |
 | **`[ U ]`** | 🔄 **Check for Updates** | **Pull Latest Code:** Fetch the latest updates directly from GitHub. |
 
@@ -170,6 +172,24 @@ A JJS-style 1v1 simulator: M1 combos, skills on cooldowns, block, dash, jump, an
 
 ### `[C] Calibrate`
 Takes a screenshot of your game and asks you to drag boxes around your health bar (while full), the opponent's health bar (if shown), and your own character. Saved to the config; everything works with defaults until then.
+
+### `[B] 🧠 3D Brain`
+Opens a page in your browser (served on your own computer only, at `http://127.0.0.1:8765`) showing **every one of the 166,700 neurons** where it sits in the MaleCNS reconstruction, coloured by region: eyes, optic lobes, central brain, mushroom body (memory), reward and punishment dopamine neurons, descending neurons, nerve cord, motor neurons. Sensory neurons have their cell bodies outside the brain, so the data has no position for them; they are drawn on the organs they belong to (photoreceptors on the compound eyes, antennal receptors in the antennae, leg receptors along six legs), which draws the whole fly.
+
+- **Glow = firing that is unusual for that neuron**, like ΔF/F in calcium imaging. At rest ~16% of neurons fire every 0.1 s, which would wash everything out; this way whatever the fly reacts to lights up. `Glow: every spike` shows raw spiking instead.
+- Drag to turn, scroll to zoom, right-drag to pan. Click a region in the legend to hide it; pick a circuit (fear, reward, memory, motor commands) to highlight it.
+- Buttons poke the fly: a **looming shadow** (its threat detectors fire, and through the connectome its giant-fibre escape neuron), a flash, a burst of reward or punishment dopamine.
+- The arena can open the same view (`[A]` → `[5]`), the casino always does, and Play mode does when `"dashboard": true` is in the config.
+
+### `[G] 🎰 Casino`
+The fly gambles its life at **Higher or Lower**. A card is dealt; the fly bets part of its life that the next card will be higher or lower (ties lose). Win and it gains the bet, lose and it loses it; the stakes rise every 10 rounds. Survive 40 rounds and it walks free; lose all its life and it is **killed**, and the next fly takes its seat, keeping what the others learned. A bot plays at the same table (Rookie, Pro, Random, or nobody).
+
+- **It sees the cards with its own eyes:** the dealt card lights up on a board of 13 slots, ace far left and king far right, the way flies are shown bars in lab arenas.
+- **It learns what each choice is worth** from dopamine (prediction error = what happened − what it expected), and bets big only when it is confident. The page's "What the fly has learned" chart shows its strategy forming, card by card.
+- **It is afraid.** Danger (how much of its life a loss could take, how close to death it is, and how likely it thinks it is to lose on this card) drives its real fear circuit: the LC4 and LPLC2 threat and looming detectors and the PPL1 punishment neurons. The connectome carries that to the giant fibre (DNp01), the escape neuron. **The terror meter is how hard that circuit is firing**, and in 3D the circuit burns red. A terrified fly needs far more confidence before it bets big, and a loss teaches it more.
+- Fear strength is a setting: 0 (fearless), 1 (normal), 2 (terrified), handy for comparing a fearless fly with a scared one.
+
+Measured with the real connectome: after about 300 rounds the fly picks the likelier side 90–98% of the time and wins 58–72% of its bets (the best possible is 71%), with 6 deaths in its first 1,000 rounds. Its learned chart comes to match the optimal strategy (higher on A–6, lower on 8–K) for nearly every card; the middle cards take longest, since the odds there are closest. "Fear" here means the activity of the neurons that fire when real flies escape threats, in a simulation; it is not a claim about what a fly feels.
 
 ### `[L] Live Telemetry`
 Run `python main.py` in a **second terminal** and pick `[L]` while Play, Manual or Train mode runs in the first one.

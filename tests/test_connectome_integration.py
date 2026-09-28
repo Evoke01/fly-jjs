@@ -98,6 +98,30 @@ class TestConnectomeIntegration(unittest.TestCase):
         self.assertLess(np.abs(settled.mean(axis=0)).max(), 1.5)    # no move favoured at rest
         self.assertGreater(settled.std(axis=0).mean(), 0.01)       # but the brain still has a say
 
+    def test_casino_fear_and_3d_view_on_the_real_brain(self):
+        from fly_jjs.core.casino import Casino, board_image
+        from fly_jjs.core.dashboard import BrainDashboard
+        c = self.components
+        dash = BrainDashboard(c.brain)
+        self.assertEqual(len(dash.layout["positions"]), c.brain.n)
+        self.assertTrue(np.all(np.isfinite(dash.layout["positions"])))   # sensory neurons placed too
+        casino = Casino(c, {"fear": 1.0}, bot="pro", mode="fast", seed=0, dashboard=dash, verbose=False)
+        casino.play_game(max_rounds=3)
+        self.assertGreater(casino.rounds, 0)
+        self.assertGreater(dash.state()["stats"]["spikes_per_s"], 0)
+        # Full danger drives the real fear circuit, and the connectome carries it on to the
+        # giant fibre, the escape neuron.
+        fear = casino.fly.fear
+        fear.assess(life=1, stake=4, dread=1.0)
+        for _ in range(15):
+            casino.fly.step(board_image())
+        self.assertGreater(fear.terror, 0.5)
+        self.assertGreater(fear.escape_rate, 0.1)
+        fear.danger = 0.0
+        for _ in range(30):
+            casino.fly.step(board_image())
+        self.assertLess(fear.terror, 0.2)                                 # and calms down again
+
     def test_agent_fights_in_the_arena(self):
         from fly_jjs.core.agent import FlyAgent
         from fly_jjs.core.arena import Arena, ArenaInput
