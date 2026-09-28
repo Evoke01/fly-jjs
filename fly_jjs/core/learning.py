@@ -1,12 +1,12 @@
 """How the fly learns from what happens in the game.
 
-The learner reads the fly's descending neurons (the brain's commands to the body) as a
-vector of firing rates `x` and turns it into key presses:
+The learner reads the fly's readout neurons (about 59,000, from the targets of the eyes
+down to the motor neurons) as a vector of firing rates `x` and turns it into key presses:
 
-* Actor: every action is an independent coin flip. Its odds come from the brain's own
-  motor populations (the innate drive, computed by the caller) plus learned weights on
-  the descending neurons. Sampling keeps the fly exploring instead of repeating one
-  move forever.
+* Actor: every action is an independent coin flip. Its odds are the innate odds
+  (computed by the caller: a resting level, instincts, motor persistence and the
+  brain's motor populations) plus learned weights on the readout neurons. Sampling
+  keeps the fly exploring instead of repeating one move forever.
 * Critic: a learned estimate of the reward that is coming, V(x).
 * Dopamine: the reward-prediction error  delta = r + gamma * V(x') - V(x),  which is
   what real dopamine neurons signal. It gates a three-factor rule (neuron activity x
@@ -37,12 +37,27 @@ def _sigmoid(z):
     return 1.0 / (1.0 + np.exp(-z))
 
 
-class FlyLearner:
-    """Actor-critic over descending-neuron firing rates (values in 0..1)."""
+def _fit(array, shape):
+    """`array` copied into a zero array of `shape` (overlapping part only).
 
-    def __init__(self, num_dns, num_actions, lr=0.05, value_lr=0.1, imitation_lr=0.05,
+    The readout lists the descending neurons first, so weights saved when the fly read
+    only its descending neurons land on the same neurons in a larger readout.
+    """
+    array = np.asarray(array, dtype=np.float32)
+    if array.shape == tuple(shape):
+        return array
+    out = np.zeros(shape, dtype=np.float32)
+    region = tuple(slice(0, min(a, b)) for a, b in zip(array.shape, shape))
+    out[region] = array[region]
+    return out
+
+
+class FlyLearner:
+    """Actor-critic over readout-neuron firing rates (values in 0..1)."""
+
+    def __init__(self, num_inputs, num_actions, lr=0.05, value_lr=0.1, imitation_lr=0.05,
                  gamma=0.95, lam=0.9, weight_decay=5e-5, max_logit=4.0, seed=None):
-        self.num_dns = num_dns
+        self.num_inputs = num_inputs
         self.num_actions = num_actions
         self.lr = lr
         self.value_lr = value_lr
@@ -53,9 +68,9 @@ class FlyLearner:
         self.max_logit = max_logit
         self.rng = np.random.default_rng(seed)
 
-        self.action_weights = np.zeros((num_dns, num_actions), dtype=np.float32)
+        self.action_weights = np.zeros((num_inputs, num_actions), dtype=np.float32)
         self.action_bias = np.zeros(num_actions, dtype=np.float32)
-        self.value_weights = np.zeros(num_dns, dtype=np.float32)
+        self.value_weights = np.zeros(num_inputs, dtype=np.float32)
         self.value_bias = 0.0
         # Running mean of |x|^2 + 1: step sizes are divided by it, so learning speed does
         # not depend on how many neurons happen to be active. None until the first input.
@@ -72,9 +87,9 @@ class FlyLearner:
 
     def reset_traces(self):
         """Forget the recent past, e.g. at the start of a session."""
-        self.actor_trace = np.zeros((self.num_dns, self.num_actions), dtype=np.float32)
+        self.actor_trace = np.zeros((self.num_inputs, self.num_actions), dtype=np.float32)
         self.bias_trace = np.zeros(self.num_actions, dtype=np.float32)
-        self.value_trace = np.zeros(self.num_dns, dtype=np.float32)
+        self.value_trace = np.zeros(self.num_inputs, dtype=np.float32)
         self.value_bias_trace = 0.0
         self.prev_x = None
 
@@ -160,6 +175,22 @@ class FlyLearner:
         self.total_reward += reward
         return self.dopamine
 
+    def end_episode(self, reward):
+        """A fight is over: credit its final reward (a kill, a death) with nothing to follow,
+        then forget the traces so the next fight starts clean."""
+        if self.prev_x is not None:
+            step = 1.0 / (self.input_norm or 1.0)
+            delta = float(np.clip(reward - self.value_of(self.prev_x), -5.0, 5.0))
+            self.value_weights += (self.value_lr * step * delta) * self.value_trace
+            self.value_bias += self.value_lr * step * delta * self.value_bias_trace
+            self.action_weights += (self.lr * step * delta) * self.actor_trace
+            self.action_bias += (self.lr * step * delta) * self.bias_trace
+            self.dopamine = float(np.clip(delta, -2.0, 2.0))
+            self.updates += 1
+        self.reward_history.append(reward)
+        self.total_reward += reward
+        self.reset_traces()
+
     def imitate(self, brain_state, target_mask, reward=None, innate=None):
         """Behaviour cloning: nudge the policy toward the keys the player is holding.
 
@@ -210,24 +241,21 @@ class FlyLearner:
         if weights.ndim != 2:
             print(f"[RL] Ignoring weights with unexpected shape {weights.shape}.")
             return False
-        if weights.shape != (self.num_dns, self.num_actions):
-            print(f"[RL] Reshaping weights matrix to match connectome ({self.num_dns} x {self.num_actions})")
-            resized = np.zeros((self.num_dns, self.num_actions), dtype=np.float32)
-            r = min(weights.shape[0], self.num_dns)
-            c = min(weights.shape[1], self.num_actions)
-            resized[:r, :c] = weights[:r, :c]
-            weights = resized
+        resized = weights.shape != (self.num_inputs, self.num_actions)
+        if resized:
+            print(f"[RL] Fitting saved {weights.shape[0]} x {weights.shape[1]} weights into the current "
+                  f"{self.num_inputs} x {self.num_actions} readout")
+            weights = _fit(weights, (self.num_inputs, self.num_actions))
 
         extra_path = sidecar_path(path)
         if os.path.exists(extra_path):
             with np.load(extra_path) as extra:
-                if extra["action_bias"].shape == (self.num_actions,):
-                    self.action_bias = extra["action_bias"].astype(np.float32)
-                if extra["value_weights"].shape == (self.num_dns,):
-                    self.value_weights = extra["value_weights"].astype(np.float32)
-                    self.value_bias = float(extra["value_bias"])
+                self.action_bias = _fit(extra["action_bias"], (self.num_actions,))
+                self.value_weights = _fit(extra["value_weights"], (self.num_inputs,))
+                self.value_bias = float(extra["value_bias"])
                 norm = float(extra["input_norm"])
-                self.input_norm = norm if norm >= 1.0 else None
+                # A different readout size means a different input scale: re-measure it.
+                self.input_norm = norm if norm >= 1.0 and not resized else None
         else:
             peak = float(np.max(np.abs(weights))) if weights.size else 0.0
             if peak > 0:

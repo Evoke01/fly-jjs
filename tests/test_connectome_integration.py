@@ -34,6 +34,9 @@ class TestConnectomeIntegration(unittest.TestCase):
     def test_brain_components(self):
         c = self.components
         self.assertGreater(len(c.dns), 1000)
+        self.assertGreater(len(c.readout), 50000)
+        np.testing.assert_array_equal(c.readout[:len(c.dns)], c.dns)   # old weight files map onto DNs
+        self.assertEqual(len(np.unique(c.readout)), len(c.readout))
         self.assertGreater(len(c.reward_dans), 100)     # PAM cluster
         self.assertGreater(len(c.punish_dans), 5)       # PPL1 cluster
         self.assertFalse(np.intersect1d(c.reward_dans, c.dns).size)   # dopamine is not a motor neuron
@@ -51,28 +54,94 @@ class TestConnectomeIntegration(unittest.TestCase):
             self.assertTrue(set(injected.tolist()) <= visual, res)
 
     def test_play_loop_steps(self):
+        from fly_jjs.core.combat import REST_LOGIT
         from fly_jjs.core.learning import FlyLearner
         from fly_jjs.core.rl import NUM_ACTIONS, FlyBody
         from fly_jjs.core.vision import FlyEyes, detect_opponent
         c = self.components
         body = FlyBody(c, FlyEyes(c.brain, "64x48", use_color=True))
-        learner = FlyLearner(len(c.dns), NUM_ACTIONS, seed=0)
+        learner = FlyLearner(body.num_inputs, NUM_ACTIONS, seed=0)
         pressed = 0
         for t in range(40):
             img = scene(t)
             gray = img[:, :, :3].mean(axis=2).astype(np.uint8)
             opp, threat = detect_opponent(gray, img.shape[1], img.shape[0])
             rates = body.step(img, opp, threat, learner.dopamine)
-            innate, pop_rates = body.innate_drive(rates)
+            drive, pop_rates = body.innate_drive(rates)
+            innate = REST_LOGIT + drive
             mask, probs = learner.act(rates, innate)
             learner.update(rates, mask, reward=0.1, probs=probs)
             pressed += mask.sum()
-        self.assertEqual(rates.shape, (len(c.dns),))
+        self.assertEqual(rates.shape, (body.num_inputs,))
+        self.assertGreater(body.num_inputs, 50000)       # the fly reads far more than its 1.3k DNs
         self.assertTrue(np.all((rates >= 0) & (rates <= 1)))
         self.assertTrue(np.all(np.isfinite(innate)))
         self.assertGreater(body.fired, 0)
         self.assertGreater(pressed, 0)                   # the untrained fly does act
         self.assertLess(pressed, 40 * NUM_ACTIONS * 0.6)  # ...without mashing every key
+
+    def test_resting_motor_populations_do_not_bias_the_fly(self):
+        """Regression: the motor populations are arbitrary slices of the descending neurons.
+        Read against fixed thresholds, their resting rates set the odds of the moves anywhere
+        from -0.1 to -3.5, whatever happened in the fight."""
+        from fly_jjs.core.rl import FlyBody
+        from fly_jjs.core.vision import FlyEyes, detect_opponent
+        c = self.components
+        body = FlyBody(c, FlyEyes(c.brain, "64x48", use_color=True))
+        drives = []
+        for t in range(120):
+            img = scene(t)
+            gray = img[:, :, :3].mean(axis=2).astype(np.uint8)
+            opp, threat = detect_opponent(gray, img.shape[1], img.shape[0])
+            drives.append(body.innate_drive(body.step(img, opp, threat))[0])
+        settled = np.array(drives[60:])
+        self.assertLess(np.abs(settled.mean(axis=0)).max(), 1.5)    # no move favoured at rest
+        self.assertGreater(settled.std(axis=0).mean(), 0.01)       # but the brain still has a say
+
+    def test_casino_fear_and_3d_view_on_the_real_brain(self):
+        from fly_jjs.core.casino import Casino, board_image
+        from fly_jjs.core.dashboard import BrainDashboard
+        c = self.components
+        dash = BrainDashboard(c.brain)
+        self.assertEqual(len(dash.layout["positions"]), c.brain.n)
+        self.assertTrue(np.all(np.isfinite(dash.layout["positions"])))   # sensory neurons placed too
+        casino = Casino(c, {"fear": 1.0}, bot="pro", mode="fast", seed=0, dashboard=dash, verbose=False)
+        casino.play_game(max_rounds=3)
+        self.assertGreater(casino.rounds, 0)
+        self.assertGreater(dash.state()["stats"]["spikes_per_s"], 0)
+        # Full danger drives the real fear circuit, and the connectome carries it on to the
+        # giant fibre, the escape neuron.
+        fear = casino.fly.fear
+        fear.assess(life=1, stake=4, dread=1.0)
+        for _ in range(15):
+            casino.fly.step(board_image())
+        self.assertGreater(fear.terror, 0.5)
+        self.assertGreater(fear.escape_rate, 0.1)
+        fear.danger = 0.0
+        for _ in range(30):
+            casino.fly.step(board_image())
+        self.assertLess(fear.terror, 0.2)                                 # and calms down again
+
+    def test_agent_fights_in_the_arena(self):
+        from fly_jjs.core.agent import FlyAgent
+        from fly_jjs.core.arena import Arena, ArenaInput
+        from fly_jjs.core.config import DEFAULT_CONFIG
+        c = self.components
+        arena = Arena(seed=2, max_seconds=3.0)
+        backend = ArenaInput()
+        agent = FlyAgent(c, dict(DEFAULT_CONFIG), arena.width, arena.height, backend, seed=2)
+        self.assertEqual(agent.learner.num_inputs, len(c.readout))
+        agent.new_fight()
+        pressed = set()
+        while not arena.done:
+            step = agent.step(arena.render(), arena.time)
+            pressed |= step.actions
+            arena.step(backend)
+        agent.end_fight(arena.render())
+        self.assertTrue(pressed)
+        self.assertGreater(agent.learner.updates, 10)
+        self.assertEqual(backend.held, set())            # nothing left held down after the fight
+        self.assertTrue(np.all(np.isfinite(agent.learner.action_weights)))
 
 
 if __name__ == "__main__":

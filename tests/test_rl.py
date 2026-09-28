@@ -10,7 +10,7 @@ class TestRLModule(unittest.TestCase):
         self.assertEqual(rs.total_kills, 0)
 
     def test_fly_learner_updates(self):
-        learner = FlyLearner(num_dns=100, num_actions=14, lr=0.01)
+        learner = FlyLearner(num_inputs=100, num_actions=14, lr=0.01)
         brain_state = np.zeros(100, dtype=np.uint8)
         brain_state[:10] = 1  # 10 active neurons
         actions_mask = np.zeros(14, dtype=np.float32)

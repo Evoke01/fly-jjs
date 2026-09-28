@@ -98,6 +98,8 @@ def render(data):
         f"[bold cyan]Mode:[/] {data.get('mode', '?').upper()}   [bold cyan]Step:[/] {data.get('step', 0)}   "
         f"[bold cyan]FPS:[/] {data.get('fps', 0):.1f}\n"
         f"[bold cyan]Session:[/] {data.get('session_seconds', 0) / 60:.1f} min\n\n"
+        f"[bold green]Neurons read:[/] {data.get('readout_neurons', 0):,} "
+        f"({data.get('readout_active_pct', 0):.1f}% active)\n"
         f"[bold green]Descending neurons active:[/] {data.get('dn_active_pct', 0):.1f}%\n"
         f"[bold green]Neurons fired this step:[/] {data.get('fired', 0):,}\n"
         f"[bold {dcolor}]Dopamine (surprise):[/] {dopamine:+.2f}\n"
@@ -114,8 +116,10 @@ def render(data):
         vision_lines.append(f"{channel:>6} {_bar(drive * 2, 14)} {drive:.2f}")
     opp = data.get("opponent") or {}
     if opp.get("size", 0) > 0:
-        vision_lines.append(f"[bold]Opponent:[/] dx {opp.get('dx', 0):+d}px  size {opp.get('size', 0)}  "
-                            f"threat {opp.get('threat', 0):.2f}")
+        distance = opp.get("distance", 1.0)
+        where = "close" if distance < 0.35 else "mid" if distance < 0.7 else "far"
+        vision_lines.append(f"[bold]Opponent:[/] {where}, dx {opp.get('dx', 0):+d}px  "
+                            f"attack {opp.get('attack', 0):.2f}  threat {opp.get('threat', 0):.2f}")
     else:
         vision_lines.append("[bold]Opponent:[/] [dim]not in view[/dim]")
     if data.get("pattern_burst"):

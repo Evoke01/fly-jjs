@@ -14,6 +14,9 @@ CONFIG_PATH = os.path.join(USER_DIR, "config.json")
 BACKUPS_DIR = os.path.join(USER_DIR, "backups")
 PROFILES_DIR = os.path.join(USER_DIR, "profiles")
 TELEMETRY_PATH = os.path.join(USER_DIR, "telemetry.json")
+# The arena trains its own brain, kept as a profile so it can be loaded for the game.
+ARENA_PROFILE = "arena"
+ARENA_WEIGHTS_PATH = os.path.join(PROFILES_DIR, ARENA_PROFILE, WEIGHTS_FILE)
 
 
 def memory_files():

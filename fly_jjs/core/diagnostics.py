@@ -24,9 +24,10 @@ def run_diagnostics():
     print("\n[Check 2/5] Testing Connectome & Neurons...")
     components = None
     try:
-        from fly_jjs.core.rl import get_brain_components
+        from fly_jjs.core.brain import get_brain_components
         components = get_brain_components()
-        print(f"  ✓ Connectome loaded: {len(components.dns)} descending neurons found")
+        print(f"  ✓ Connectome loaded: {components.brain.n:,} neurons, {len(components.dns)} descending")
+        print(f"  ✓ Readout: the fly reads {len(components.readout):,} neurons downstream of its eyes")
         print(f"  ✓ Dopamine neurons: {len(components.reward_dans)} reward (PAM), "
               f"{len(components.punish_dans)} punishment (PPL1)")
     except Exception as e:

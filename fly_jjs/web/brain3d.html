@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fly brain, live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0d; --ink: #dcdcd4; --dim: #8d8d86; --faint: #5a5a54; --hair: rgba(220, 220, 212, 0.14);
+    --sheet: rgba(10, 11, 13, 0.76); --red: #ff4b3e; --green: #45d483; --amber: #f0a830;
+    --felt: #174a31; --felt-edge: #0d2b1d; --card: #f3efe4; --card-ink: #1d1c1a; --card-red: #b0262a;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: "IBM Plex Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font: 13px/1.4 var(--sans); }
+  canvas#gl { position: fixed; inset: 0; width: 100%; height: 100%; cursor: grab; }
+  canvas#gl:active { cursor: grabbing; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .dim { color: var(--dim); }
+  .hidden { display: none !important; }
+  button, select { font: 12px var(--mono); color: var(--ink); background: transparent; border: 1px solid var(--hair);
+    border-radius: 2px; padding: 5px 9px; cursor: pointer; }
+  button:hover, select:hover { border-color: rgba(220, 220, 212, 0.45); }
+  button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  select option { background: var(--bg); }
+
+  /* top-left identity */
+  #top { position: absolute; top: 16px; left: 18px; max-width: 760px; pointer-events: none; }
+  #top .kicker { font: 11px var(--mono); color: var(--dim); }
+  #top h1 { margin: 2px 0 0; font: 600 22px/1.2 var(--sans); letter-spacing: -0.01em; }
+  #top h1 .live { font: 500 11px var(--mono); color: var(--red); vertical-align: 5px; margin-left: 6px; }
+  #top h1 .live::before { content: ""; display: inline-block; width: 7px; height: 7px; background: var(--red);
+    border-radius: 50%; margin-right: 5px; vertical-align: 0; animation: blink 1.6s steps(2, start) infinite; }
+  @keyframes blink { to { visibility: hidden; } }
+  #top .modeline { margin-top: 4px; font-size: 14px; }
+  #top .readout { margin-top: 8px; font-size: 12px; color: var(--dim); }
+  #top .readout b { color: var(--ink); font-weight: 500; }
+
+  /* sheets: plain panels with a hairline on top */
+  .sheet { background: var(--sheet); border-top: 1px solid var(--hair); padding: 8px 10px 10px; }
+  .sheet h2 { margin: 0 0 6px; font: 500 12px var(--sans); color: var(--ink); display: flex; justify-content: space-between; gap: 8px; }
+  .sheet h2 .note { font: 11px var(--mono); color: var(--faint); font-weight: 400; }
+  #left { position: absolute; top: 118px; left: 18px; width: 300px; display: flex; flex-direction: column; gap: 12px;
+    max-height: calc(100% - 200px); overflow-y: auto; }
+  #right { position: absolute; top: 16px; right: 18px; width: 316px; display: flex; flex-direction: column; gap: 12px; }
+  .rows { font: 12px var(--mono); }
+  .rows .r { display: grid; grid-template-columns: 1fr 64px 58px; gap: 8px; align-items: center; padding: 1px 0; }
+  .rows .r .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rows .r .v { text-align: right; color: var(--dim); }
+  .line { height: 2px; background: rgba(220, 220, 212, 0.12); }
+  .line i { display: block; height: 100%; background: var(--ink); }
+  .legend .r { grid-template-columns: 10px 1fr 60px; cursor: pointer; user-select: none; }
+  .legend .r.off { color: var(--faint); }
+  .legend .r.off .n { text-decoration: line-through; }
+  .sw { width: 9px; height: 9px; }
+  .empty { font: 12px var(--mono); color: var(--faint); }
+
+  /* fear */
+  .terror { display: flex; align-items: baseline; gap: 8px; }
+  .terror .big { font: 500 38px/1 var(--mono); }
+  .terror .big small { font-size: 18px; color: var(--dim); }
+  .terror .lbl { font: 12px var(--mono); color: var(--dim); }
+  .fearline { font: 12px var(--mono); color: var(--dim); margin: 2px 0 6px; }
+  .fearline b { color: var(--ink); font-weight: 500; }
+  #fear.alarm .big { color: var(--red); }
+  #fear-state.hot { color: var(--red); }
+  canvas.plot { display: block; width: 100%; }
+  .axis { display: flex; justify-content: space-between; font: 10px var(--mono); color: var(--faint); margin: 2px 0 8px; }
+  #eye img { display: block; width: 100%; image-rendering: pixelated; background: #000; min-height: 40px; }
+
+  /* bottom strip */
+  #bottom { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(1000px, calc(100% - 36px));
+    display: flex; flex-direction: column; gap: 6px; }
+  #log { font: 12px var(--mono); color: var(--dim); background: var(--sheet); padding: 6px 10px; }
+  #log div:first-child { color: var(--ink); }
+
+  /* the card table */
+  .table { background: radial-gradient(120% 140% at 50% 0%, #1f5c3d 0%, var(--felt) 45%, var(--felt-edge) 100%);
+    border: 1px solid rgba(0, 0, 0, 0.6); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); padding: 12px 14px 8px; color: #eef0e6; }
+  .felt { display: grid; grid-template-columns: auto 1fr 330px; gap: 18px; align-items: center; }
+  .cards { display: flex; align-items: center; gap: 10px; }
+  .cards .to { font: 11px var(--mono); color: rgba(238, 240, 230, 0.6); }
+  .card { position: relative; width: 66px; height: 94px; background: var(--card); color: var(--card-ink); border-radius: 5px;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35), 0 6px 14px rgba(0, 0, 0, 0.35); font-family: var(--serif); }
+  .card.red { color: var(--card-red); }
+  .card .ix { position: absolute; top: 5px; left: 6px; font: 600 15px/0.95 var(--serif); text-align: center; }
+  .card .ix.br { top: auto; left: auto; bottom: 5px; right: 6px; transform: rotate(180deg); }
+  .card .c { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 34px; }
+  .card.back::after { content: ""; position: absolute; inset: 5px; border-radius: 3px;
+    background: repeating-linear-gradient(45deg, #8c2a2a 0 3px, #6d1f1f 3px 6px); }
+  .seats { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+  .seat { display: grid; grid-template-columns: 96px 1fr 30px 112px 40px; gap: 10px; align-items: center; font: 12px var(--mono); }
+  .seat .who { font: 500 13px var(--sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seat .who small { display: block; font: 11px var(--mono); color: rgba(238, 240, 230, 0.55); }
+  .life { position: relative; height: 10px; background: rgba(0, 0, 0, 0.35); }
+  .life i { position: absolute; inset: 0 auto 0 0; background: var(--card); transition: width 0.35s; }
+  .life.low i { background: #ff6b5e; }
+  .life::after { content: ""; position: absolute; inset: 0;
+    background: repeating-linear-gradient(90deg, transparent 0 calc(100% / 30 - 1px), var(--felt) calc(100% / 30 - 1px) calc(100% / 30)); }
+  .seat .num { text-align: right; }
+  .seat .call { color: rgba(238, 240, 230, 0.85); }
+  .seat .res { text-align: right; font-weight: 600; }
+  .res.win { color: #7df0a8; }
+  .res.lose, .res.dead { color: #ff8e84; }
+  .odds { font: 11px var(--mono); color: rgba(238, 240, 230, 0.6); }
+  .strategy { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; height: 84px; position: relative; }
+  .strategy::before { content: ""; position: absolute; left: 0; right: 0; top: 36px; border-top: 1px solid rgba(238, 240, 230, 0.35); }
+  .strategy .col { display: grid; grid-template-rows: 36px 36px 12px; }
+  .strategy .up { display: flex; align-items: flex-end; justify-content: center; }
+  .strategy .down { display: flex; align-items: flex-start; justify-content: center; }
+  .strategy .bar { width: 70%; min-height: 1px; }
+  .strategy .up .bar { background: #7df0a8; }
+  .strategy .down .bar { background: #ff8e84; }
+  .strategy .lab { font: 600 11px/12px var(--serif); text-align: center; color: rgba(238, 240, 230, 0.8); }
+  .strategy-cap { display: flex; justify-content: space-between; font: 10px var(--mono); color: rgba(238, 240, 230, 0.55); margin-top: 2px; }
+  .tableline { font: 11px var(--mono); color: rgba(238, 240, 230, 0.7); margin-top: 8px; padding-top: 6px;
+    border-top: 1px solid rgba(238, 240, 230, 0.14); display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .tableline b { color: #eef0e6; font-weight: 500; }
+
+  /* keys held (arena / play) */
+  .keys { background: var(--sheet); padding: 8px 10px; display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+  .keys .cap { font: 11px var(--mono); color: var(--dim); margin-right: 6px; }
+  .key { min-width: 28px; padding: 4px 7px; text-align: center; font: 500 12px var(--mono); border: 1px solid var(--hair);
+    border-bottom-width: 2px; border-radius: 3px; color: var(--dim); }
+  .key.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  /* stimuli (resting brain) */
+  .stims { background: var(--sheet); padding: 8px 10px; }
+  .stims .btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .stims .what { font: 11px var(--mono); color: var(--faint); margin-top: 6px; min-height: 15px; }
+
+  #controls { position: absolute; left: 18px; bottom: 16px; display: flex; gap: 6px; flex-wrap: wrap; max-width: 300px; }
+  #scale { position: absolute; right: 18px; bottom: 18px; font: 11px var(--mono); color: var(--dim); text-align: center; pointer-events: none; }
+  #scale .bar { height: 6px; border: 1px solid var(--dim); border-top: 0; margin-bottom: 3px; }
+  #offline { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); font: 12px var(--mono); color: var(--red); display: none; }
+  #flash { position: fixed; inset: 0; pointer-events: none; background: var(--red); opacity: 0; transition: opacity 0.6s; }
+  #banner { position: fixed; left: 0; right: 0; top: 34%; text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+  #banner .t { font: 600 64px/1 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; }
+  #banner .d { font: 14px var(--mono); color: var(--ink); margin-top: 10px; }
+  #banner.dead .t { color: var(--red); }
+  #banner.good .t { color: var(--green); }
+  #banner.bad .t { color: var(--amber); }
+  body.clean #left, body.clean #right, body.clean #controls, body.clean #log { display: none !important; }
+  @media (max-width: 1100px) { #left { display: none; } .felt { grid-template-columns: auto 1fr; } .strategy-wrap { display: none; } }
+  @media (max-width: 700px) { #right { width: 220px; } #top h1 { font-size: 18px; } }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="flash"></div>
+<div id="banner"><div class="t"></div><div class="d"></div></div>
+<div id="offline">connection lost: is fly-jjs still running?</div>
+
+<div id="top">
+  <div class="kicker">Drosophila melanogaster · male central nervous system (MaleCNS connectome)</div>
+  <h1>Fly brain <span class="live">live</span></h1>
+  <div class="modeline"><span id="mode">Loading</span><span id="title" class="dim"></span></div>
+  <div class="readout mono"><b id="r-neurons">–</b> neurons · <b id="r-spikes">–</b> spikes/s · <b id="r-fired">–</b> fired in 0.1 s · <b id="r-unusual">–</b> unusual</div>
+</div>
+
+<div id="left">
+  <section class="sheet"><h2>Excited cell types <span class="note">excited / total</span></h2><div id="types" class="rows"></div></section>
+  <section class="sheet legend"><h2>Regions <span class="note">click to hide</span></h2><div id="legend" class="rows"></div></section>
+</div>
+
+<div id="right">
+  <section class="sheet" id="fear">
+    <h2>Fear circuit <span class="note">LC4 · LPLC2 · PPL1 · giant fibre</span></h2>
+    <div class="terror"><span class="big"><span id="terror">0</span><small>%</small></span><span class="lbl" id="terror-lbl">circuit activity</span></div>
+    <div class="fearline"><span id="danger-wrap">danger <b id="danger">–</b> · </span><span id="fear-state">calm</span></div>
+    <canvas id="trace" class="plot" height="70"></canvas>
+    <div class="axis"><span>−30 s</span><span>terror (solid), danger (dotted)</span><span>now</span></div>
+    <canvas id="raster" class="plot" height="152"></canvas>
+    <div class="axis"><span>−3 s</span><span>spikes of identified neurons</span><span>now</span></div>
+  </section>
+  <section class="sheet" id="eye">
+    <h2>Eye input <span class="note" id="eye-note"></span></h2>
+    <img id="eye-img" alt="What the fly is looking at">
+  </section>
+</div>
+
+<div id="bottom">
+  <section id="table" class="table hidden"></section>
+  <section id="keys" class="keys hidden"></section>
+  <section id="stims" class="stims hidden"><div class="btns" id="stim-btns"></div><div class="what" id="stim-what"></div></section>
+  <div id="log" class="hidden"></div>
+</div>
+
+<div id="controls">
+  <button id="spin" class="on" title="Slowly turn the brain">spin</button>
+  <button id="reset" title="Back to the starting view (R)">reset view</button>
+  <button id="glow" title="Glow with firing that is unusual for each neuron, or with every spike">glow: change</button>
+  <select id="circuit" title="Highlight one circuit">
+    <option value="0">all neurons</option>
+    <option value="1">fear circuit</option>
+    <option value="2">reward dopamine</option>
+    <option value="4">mushroom body</option>
+    <option value="8">motor commands</option>
+  </select>
+  <button id="clean" title="Hide the side panels for recording (H)">hide panels</button>
+  <button id="stop" class="hidden" title="Stop and return to the menu">stop</button>
+</div>
+<div id="scale" class="hidden"><div class="bar" id="scale-bar"></div><span id="scale-label"></span></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (x) => Number(x).toLocaleString("en-US");
+const RANKS = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+const SUITS = { S: "♠", H: "♥", D: "♦", C: "♣" };
+const MODES = { casino: "Casino", arena: "Arena", play: "Playing JJS", manual: "Playing JJS (manual rewards)", resting: "Resting brain", idle: "Waiting" };
+
+// ------------------------------------------------------------------ WebGL point cloud
+const canvas = $("gl");
+const gl = canvas.getContext("webgl", { antialias: false, alpha: false, preserveDrawingBuffer: true });
+
+const VS = `
+precision mediump float;
+attribute vec3 aPos; attribute float aRegion; attribute float aFlag; attribute float aAct;
+uniform mat4 uMVP; uniform vec3 uPalette[16]; uniform float uVisible[16]; uniform float uDensity[16];
+uniform float uSize; uniform float uHighlight; uniform float uTerror;
+varying vec3 vColor; varying float vAlpha;
+float bit(float f, float b) { return mod(floor(f / b), 2.0); }
+void main() {
+  int r = int(aRegion + 0.5);
+  vec3 base = uPalette[r];
+  float vis = uVisible[r];
+  float fear = bit(aFlag, 1.0);
+  // Twinkles stay faint and bursts blaze; the fear circuit also burns with the terror
+  // measured from its own firing.
+  float act = max(aAct * aAct, fear * uTerror * 0.9);
+  float chosen = uHighlight > 0.5 ? bit(aFlag, uHighlight) : 1.0;
+  float dim = uHighlight > 0.5 ? mix(0.10, 1.0, chosen) : 1.0;
+  vec3 hot = mix(mix(base, vec3(1.0), 0.5), vec3(1.0, 0.25, 0.18), fear);
+  vColor = mix(base * 0.5, hot * 1.4, min(1.0, act * 1.4)) * dim;
+  vAlpha = vis * (0.25 * uDensity[r] + 0.75 * act) * dim;
+  vec4 p = uMVP * vec4(aPos, 1.0);
+  gl_Position = p;
+  float boost = (uHighlight > 0.5 ? chosen * 0.9 : 0.0) + 2.2 * act;
+  gl_PointSize = vis * clamp(uSize * (1.0 + boost) / p.w, 0.0, 48.0);
+}`;
+const FS = `
+precision mediump float;
+varying vec3 vColor; varying float vAlpha;
+void main() {
+  vec2 d = gl_PointCoord - vec2(0.5);
+  float r2 = dot(d, d) * 4.0;
+  if (r2 > 1.0) discard;
+  float a = vAlpha * (1.0 - r2) * (1.0 - r2);
+  gl_FragColor = vec4(vColor * a, a);
+}`;
+
+let prog, loc = {}, buffers = {}, N = 0, meta = null;
+const palette = new Float32Array(48), visible = new Float32Array(16).fill(1), density = new Float32Array(16).fill(1);
+function shader(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+function setupGL() {
+  prog = gl.createProgram();
+  gl.attachShader(prog, shader(gl.VERTEX_SHADER, VS));
+  gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+  for (const a of ["aPos", "aRegion", "aFlag", "aAct"]) loc[a] = gl.getAttribLocation(prog, a);
+  for (const u of ["uMVP", "uPalette", "uVisible", "uDensity", "uSize", "uHighlight", "uTerror"]) loc[u] = gl.getUniformLocation(prog, u);
+  gl.disable(gl.DEPTH_TEST);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE);   // additive: busy regions glow
+}
+function attribute(name, data, size, type, normalized) {
+  const b = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, b);
+  gl.bufferData(gl.ARRAY_BUFFER, data, name === "aAct" ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(loc[name]);
+  gl.vertexAttribPointer(loc[name], size, type, normalized, 0, 0);
+  buffers[name] = b;
+}
+
+// ------------------------------------------------------------------ camera
+const FOV = 0.75;
+const HOME = { yaw: 0.55, pitch: 0.3, dist: 4.0, target: [0, -0.5, 0.8] };
+const cam = JSON.parse(JSON.stringify(HOME));
+let spin = true, highlight = 0, glowKind = "change", terrorNow = 0;
+function perspective(fovy, aspect, near, far) {
+  const f = 1 / Math.tan(fovy / 2), nf = 1 / (near - far);
+  return [f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (far + near) * nf, -1, 0, 0, 2 * far * near * nf, 0];
+}
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+function norm(a) { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; }
+function eyePos() {
+  const cp = Math.cos(cam.pitch);
+  return [cam.target[0] + cam.dist * cp * Math.sin(cam.yaw), cam.target[1] + cam.dist * Math.sin(cam.pitch),
+          cam.target[2] - cam.dist * cp * Math.cos(cam.yaw)];
+}
+function lookAt(eye, center, up) {
+  const f = norm(sub(center, eye)), s = norm(cross(f, up)), u = cross(s, f);
+  return [s[0], u[0], -f[0], 0, s[1], u[1], -f[1], 0, s[2], u[2], -f[2], 0, -dot(s, eye), -dot(u, eye), dot(f, eye), 1];
+}
+function mul(a, b) {
+  const o = new Array(16);
+  for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) {
+    let s = 0;
+    for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k];
+    o[c * 4 + r] = s;
+  }
+  return o;
+}
+let drag = null;
+canvas.addEventListener("pointerdown", (e) => { canvas.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; });
+canvas.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  drag.x = e.clientX; drag.y = e.clientY;
+  if (drag.pan) {
+    const eye = eyePos(), f = norm(sub(cam.target, eye)), s = norm(cross(f, [0, 1, 0])), u = cross(s, f), k = cam.dist * 0.0012;
+    for (let i = 0; i < 3; i++) cam.target[i] += -s[i] * dx * k + u[i] * dy * k;
+  } else {
+    cam.yaw += dx * 0.006;
+    cam.pitch = Math.max(-1.45, Math.min(1.45, cam.pitch + dy * 0.006));
+  }
+});
+canvas.addEventListener("pointerup", () => { drag = null; });
+canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+canvas.addEventListener("wheel", (e) => { e.preventDefault(); cam.dist = Math.max(0.6, Math.min(14, cam.dist * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
+const resetView = () => Object.assign(cam, JSON.parse(JSON.stringify(HOME)));
+canvas.addEventListener("dblclick", resetView);
+$("reset").onclick = resetView;
+$("spin").onclick = () => { spin = !spin; $("spin").classList.toggle("on", spin); };
+$("glow").onclick = () => { glowKind = glowKind === "change" ? "raw" : "change"; $("glow").textContent = "glow: " + (glowKind === "change" ? "change" : "every spike"); };
+$("circuit").onchange = (e) => { highlight = Number(e.target.value); };
+const toggleClean = () => document.body.classList.toggle("clean");
+$("clean").onclick = toggleClean;
+$("stop").onclick = () => poke("stop");
+window.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "SELECT") return;
+  if (e.key === "h" || e.key === "H") toggleClean();
+  if (e.key === "r" || e.key === "R") resetView();
+});
+
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.floor(canvas.clientWidth * dpr), h = Math.floor(canvas.clientHeight * dpr);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  return dpr;
+}
+const NICE = [10, 20, 50, 100, 200, 500, 1000];
+function updateScale() {
+  const um = meta && meta.um_per_unit;
+  if (!um) return;
+  // Pixels per view unit at the depth of the point the camera looks at.
+  const pxPerUnit = (canvas.clientHeight / 2) / (cam.dist * Math.tan(FOV / 2));
+  const pxPerUm = pxPerUnit / um;
+  const pick = NICE.find((v) => v * pxPerUm >= 60) || NICE[NICE.length - 1];
+  $("scale-bar").style.width = Math.round(pick * pxPerUm) + "px";
+  $("scale-label").textContent = pick >= 1000 ? `${pick / 1000} mm` : `${pick} µm`;
+  $("scale").classList.remove("hidden");
+}
+function draw() {
+  requestAnimationFrame(draw);
+  if (!N) return;
+  const dpr = resize();
+  if (spin && !drag) cam.yaw += 0.0016;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.clearColor(0.039, 0.043, 0.051, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.uniformMatrix4fv(loc.uMVP, false, new Float32Array(mul(perspective(FOV, canvas.width / canvas.height, 0.02, 60), lookAt(eyePos(), cam.target, [0, 1, 0]))));
+  gl.uniform3fv(loc.uPalette, palette);
+  gl.uniform1fv(loc.uVisible, visible);
+  gl.uniform1fv(loc.uDensity, density);
+  gl.uniform1f(loc.uSize, 7.5 * dpr * Math.max(0.6, canvas.clientHeight / 900));
+  gl.uniform1f(loc.uHighlight, highlight);
+  gl.uniform1f(loc.uTerror, terrorNow);
+  gl.drawArrays(gl.POINTS, 0, N);
+  updateScale();
+}
+
+// ------------------------------------------------------------------ data
+let offlineSince = 0;
+function online(ok) {
+  if (ok) { offlineSince = 0; $("offline").style.display = "none"; return; }
+  if (!offlineSince) offlineSince = Date.now();
+  if (Date.now() - offlineSince > 1500) $("offline").style.display = "block";
+}
+const poke = (what) => fetch("/api/poke", { method: "POST", body: JSON.stringify({ what }) });
+async function load() {
+  meta = await (await fetch("/api/meta")).json();
+  const buf = await (await fetch("/api/layout")).arrayBuffer();
+  N = meta.neurons;
+  $("r-neurons").textContent = fmt(N);
+  meta.regions.forEach((r, i) => {
+    palette.set(r.color, i * 3);
+    // Dense regions (the optic lobes hold 89,000 neurons) get dimmer resting points.
+    density[i] = Math.max(0.2, Math.min(1, Math.sqrt(4000 / Math.max(1, r.count))));
+  });
+  buildLegend();
+  if (!gl) { $("title").textContent = " · this browser has no WebGL, so the 3D view is off"; return; }
+  setupGL();
+  attribute("aPos", new Float32Array(buf, 0, N * 3), 3, gl.FLOAT, false);
+  attribute("aRegion", new Uint8Array(buf, N * 12, N), 1, gl.UNSIGNED_BYTE, false);
+  attribute("aFlag", new Uint8Array(buf, N * 13, N), 1, gl.UNSIGNED_BYTE, false);
+  attribute("aAct", new Uint8Array(N), 1, gl.UNSIGNED_BYTE, true);
+  requestAnimationFrame(draw);
+}
+const busy = { act: false, state: false, eye: false };
+async function pollActivity() {
+  if (busy.act || !N || !gl) return;
+  busy.act = true;
+  try {
+    const bytes = new Uint8Array(await (await fetch("/api/activity?kind=" + glowKind, { cache: "no-store" })).arrayBuffer());
+    if (bytes.length === N) { gl.bindBuffer(gl.ARRAY_BUFFER, buffers.aAct); gl.bufferSubData(gl.ARRAY_BUFFER, 0, bytes); }
+    online(true);
+  } catch (e) { online(false); }
+  busy.act = false;
+}
+async function pollState() {
+  if (busy.state) return;
+  busy.state = true;
+  try { render(await (await fetch("/api/state", { cache: "no-store" })).json()); online(true); }
+  catch (e) { online(false); }
+  busy.state = false;
+}
+function pollEye() {
+  if (busy.eye) return;
+  busy.eye = true;
+  const img = new Image();
+  img.onload = () => { $("eye-img").src = img.src; busy.eye = false; };
+  img.onerror = () => { busy.eye = false; };
+  img.src = "/api/eye.png?t=" + Date.now();
+}
+
+// ------------------------------------------------------------------ panels
+function buildLegend() {
+  $("legend").innerHTML = meta.regions.map((r, i) => r.count ? `<div class="r" data-i="${i}">
+    <span class="sw" style="background:rgb(${r.color.map((c) => Math.round(c * 255))})"></span>
+    <span class="n">${esc(r.name)}</span><span class="v">${fmt(r.count)}</span></div>` : "").join("");
+  for (const row of $("legend").querySelectorAll(".r")) {
+    row.onclick = () => { const i = Number(row.dataset.i); visible[i] = visible[i] ? 0 : 1; row.classList.toggle("off", !visible[i]); };
+  }
+}
+function renderTypes(types) {
+  $("types").innerHTML = types.length ? types.map((t) => `<div class="r"><span class="n">${esc(t.name)}</span>
+    <span class="line"><i style="width:${Math.min(100, t.pct).toFixed(0)}%"></i></span><span class="v">${t.excited}/${t.n}</span></div>`).join("")
+    : `<div class="empty">none: nothing unusual right now</div>`;
+}
+
+// fear: a strip chart like a heart monitor, and a spike raster
+const history = [];
+function sizeCanvas(cv) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.round(cv.clientWidth * dpr), h = Math.round(Number(cv.getAttribute("height")) * dpr);
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; cv.style.height = cv.getAttribute("height") + "px"; }
+  return dpr;
+}
+function drawTrace() {
+  const cv = $("trace"), dpr = sizeCanvas(cv), ctx = cv.getContext("2d"), w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = "rgba(220,220,212,0.08)";
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 4; i++) { const y = Math.round((h * i) / 4) + 0.5; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+  for (let i = 1; i < 6; i++) { const x = Math.round((w * i) / 6) + 0.5; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+  const span = 30000, now = Date.now();
+  const plot = (key, style, width, dash) => {
+    ctx.strokeStyle = style; ctx.lineWidth = width * dpr; ctx.setLineDash(dash.map((d) => d * dpr));
+    ctx.beginPath();
+    let started = false;
+    for (const p of history) {
+      if (p[key] == null) continue;
+      const x = w - ((now - p.t) / span) * w, y = h - 2 - p[key] * (h - 4);
+      if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  };
+  plot("danger", "rgba(255,75,62,0.45)", 1, [2, 3]);
+  plot("terror", "#ff4b3e", 1.5, []);
+}
+const RASTER_COLOR = { GF: "#ff4b3e", MDN: "#ff4b3e", LC4: "#ff7a6e", LPLC2: "#ff7a6e", PPL1: "#e0473a", PAM: "#f0a830" };
+function drawRaster(r) {
+  const cv = $("raster"), dpr = sizeCanvas(cv), ctx = cv.getContext("2d"), w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+  if (!r || !r.groups.length) return;
+  // Each group gets at least a label's height; its neurons share it as rows.
+  const minH = 14 * dpr, labelW = 46 * dpr, plotW = w - labelW;
+  const rows = r.groups.reduce((a, g) => a + g[1], 0);
+  const want = r.groups.map(([, count]) => Math.max(minH, (count / rows) * h));
+  const scale = h / want.reduce((a, b) => a + b, 0);
+  const rowTop = [], rowH = [], color = [];
+  let y = 0;
+  ctx.font = `${10 * dpr}px ${getComputedStyle(document.body).getPropertyValue("--mono")}`;
+  ctx.textBaseline = "middle";
+  r.groups.forEach(([label, count], g) => {
+    const gh = want[g] * scale;
+    ctx.fillStyle = "#8d8d86";
+    ctx.fillText(label, 0, y + gh / 2);
+    if (y) { ctx.fillStyle = "rgba(220,220,212,0.12)"; ctx.fillRect(labelW, Math.round(y), plotW, 1); }
+    for (let k = 0; k < count; k++) { rowTop.push(y + (k * gh) / count); rowH.push(gh / count); color.push(RASTER_COLOR[label] || "#dcdcd4"); }
+    y += gh;
+  });
+  const px = plotW / r.window;
+  for (const [age, rr] of r.spikes) {
+    if (rowTop[rr] == null) continue;
+    ctx.fillStyle = color[rr];
+    ctx.fillRect(labelW + plotW - (age + 1) * px, rowTop[rr] + rowH[rr] * 0.15, Math.max(1, px * 0.7), Math.max(1, rowH[rr] * 0.7));
+  }
+}
+function renderFear(s) {
+  const c = s.circuits || {};
+  const measured = !!s.fear;
+  const terror = measured ? s.fear.terror : Math.min(1, (c.fear || 0) / 0.3);
+  terrorNow = measured ? terror : 0;
+  $("terror").textContent = Math.round(terror * 100);
+  $("terror-lbl").textContent = measured ? "terror" : "fear-circuit excitement";
+  $("danger-wrap").classList.toggle("hidden", !measured);
+  if (measured) $("danger").textContent = s.fear.danger.toFixed(2);
+  const state = measured ? s.fear.label : (terror > 0.3 ? "excited" : "calm");
+  $("fear-state").textContent = state;
+  $("fear-state").classList.toggle("hot", terror > 0.5 || /giant fibre/.test(state));
+  $("fear").classList.toggle("alarm", terror >= 0.6);
+  history.push({ t: Date.now(), terror, danger: measured ? s.fear.danger : null });
+  while (history.length && Date.now() - history[0].t > 31000) history.shift();
+  drawTrace();
+  drawRaster(s.raster);
+}
+
+// the card table
+function card(rank, suit, faceDown) {
+  if (!rank || faceDown) return `<div class="card back"></div>`;
+  const sym = SUITS[suit] || SUITS.S, red = suit === "H" || suit === "D";
+  return `<div class="card${red ? " red" : ""}"><span class="ix">${RANKS[rank]}<br>${sym}</span><span class="c">${sym}</span><span class="ix br">${RANKS[rank]}<br>${sym}</span></div>`;
+}
+function seat(p, sub) {
+  if (!p) return "";
+  const pct = Math.max(0, Math.min(100, (p.life / p.max) * 100));
+  let call = `<span class="dim">…</span>`, res = "";
+  if (p.choice) call = `${p.choice} · ${p.bet}`;
+  if (p.result === "win") res = `<span class="res win">+${p.bet}</span>`;
+  if (p.result === "lose") res = `<span class="res lose">−${p.bet}</span>`;
+  if (!p.alive) res = `<span class="res dead">dead</span>`;
+  return `<div class="seat"><div class="who">${esc(p.name)}<small>${esc(sub)}</small></div>
+    <div class="life${p.life <= 5 ? " low" : ""}"><i style="width:${pct}%"></i></div><div class="num">${p.life}</div>
+    <div class="call">${call}</div><div>${res}</div></div>`;
+}
+function strategy(strat) {
+  if (!strat || !strat.length) return "";
+  const cols = strat.map((s, i) => {
+    let up = "", down = "";
+    if (s) {
+      const h = Math.max(1, Math.round((s.win - 0.5) * 2 * 34)), certain = Math.abs(s.p_higher - 0.5) * 2;
+      const bar = `<div class="bar" style="height:${h}px;opacity:${(0.35 + 0.65 * certain).toFixed(2)}"></div>`;
+      if (s.p_higher >= 0.5) up = bar; else down = bar;
+    }
+    const tip = s ? `${RANKS[i + 1]}: says higher ${(s.p_higher * 100).toFixed(0)}% of the time, expects to win ${(s.win * 100).toFixed(0)}%` : `${RANKS[i + 1]}: not seen yet`;
+    return `<div class="col" title="${tip}"><div class="up">${up}</div><div class="down">${down}</div><div class="lab">${RANKS[i + 1]}</div></div>`;
+  }).join("");
+  return `<div class="strategy-wrap"><div class="strategy">${cols}</div><div class="strategy-cap"><span>up: says higher</span><span>what it learned</span><span>down: lower</span></div></div>`;
+}
+function renderCasino(c) {
+  const f = c.fly || {}, st = c.stats || {};
+  const odds = f.p_higher != null ? `p(higher) ${f.p_higher.toFixed(2)} · p(big bet) ${f.p_big.toFixed(2)}` : "looking at the card";
+  const duel = st.duels ? `<span>duels <b>${st.duels.fly}–${st.duels.bot}</b>${st.duels.draw ? ` (${st.duels.draw} drawn)` : ""}</span>` : "";
+  $("table").innerHTML = `<div class="felt">
+      <div class="cards">${card(c.card, c.card_suit)}<span class="to">next</span>${card(c.next, c.next_suit, !c.next)}</div>
+      <div class="seats">${seat(f, `generation ${st.generation || 1}`)}${seat(c.bot, "house bot")}<div class="odds">${odds}</div></div>
+      ${strategy(c.strategy)}
+    </div>
+    <div class="tableline"><span>round <b>${c.round}/${c.max_rounds}</b></span><span>stake <b>×${c.stake}</b></span>
+      <span>smart picks <b>${st.smart_pct ?? "–"}%</b></span><span>bets won <b>${st.winrate_pct ?? "–"}%</b></span>
+      <span>deaths <b>${st.deaths ?? 0}</b></span><span>walked free <b>${st.freed ?? 0}</b></span>${duel}
+      <span>rounds played <b>${fmt(st.rounds || 0)}</b></span></div>`;
+  banner(c.banner);
+}
+let lastBanner = "";
+function banner(b) {
+  const key = b ? b.kind + b.title + b.detail : "";
+  if (key === lastBanner) return;
+  lastBanner = key;
+  const el = $("banner");
+  el.className = b ? b.kind : "";
+  el.querySelector(".t").textContent = b ? b.title : "";
+  el.querySelector(".d").textContent = b ? b.detail : "";
+  el.style.opacity = b ? 1 : 0;
+  if (b && b.kind === "dead") { $("flash").style.opacity = 0.35; setTimeout(() => { $("flash").style.opacity = 0; }, 180); }
+}
+
+// keys the fly is holding (arena, play)
+const KEYS = [["forward", "W"], ["left", "A"], ["back", "S"], ["right", "D"], ["sprint", "W×2"], ["jump", "Space"], ["block", "F"],
+  ["melee", "M1"], ["skill1", "1"], ["skill2", "2"], ["skill3", "3"], ["skill4", "4"], ["dash", "Q"], ["special", "R"], ["awaken", "G"]];
+function renderKeys(actions) {
+  const on = new Set(actions);
+  $("keys").innerHTML = `<span class="cap">keys held</span>` + KEYS.map(([a, k]) => `<span class="key${on.has(a) ? " on" : ""}" title="${a}">${k}</span>`).join("");
+}
+
+// stimuli for the resting brain
+const STIMS = {
+  loom: ["Looming shadow", "A dark disk rushing at the eyes: drives LC4/LPLC2 and, through the connectome, the giant fibre."],
+  flash: ["Flash", "A bright flash of light on both eyes."],
+  reward: ["Reward", "Releases reward dopamine (PAM neurons)."],
+  punish: ["Punish", "Releases punishment dopamine (PPL1 neurons)."],
+};
+let stimsBuilt = null;
+function renderStims(list) {
+  const key = list.join(",");
+  if (key === stimsBuilt) return;
+  stimsBuilt = key;
+  $("stim-btns").innerHTML = list.map((p) => `<button data-p="${esc(p)}">${esc((STIMS[p] || [p])[0])}</button>`).join("");
+  for (const b of $("stim-btns").querySelectorAll("button")) {
+    b.onclick = () => poke(b.dataset.p);
+    b.onmouseenter = () => { $("stim-what").textContent = (STIMS[b.dataset.p] || ["", ""])[1]; };
+  }
+}
+
+function render(s) {
+  $("mode").textContent = MODES[s.mode] || s.mode || "Live";
+  $("title").textContent = s.title ? ` · ${s.title}` : "";
+  const st = s.stats || {};
+  $("r-spikes").textContent = fmt(st.spikes_per_s || 0);
+  $("r-fired").textContent = (st.active_pct || 0).toFixed(1) + "%";
+  $("r-unusual").textContent = (st.excited_pct || 0).toFixed(2) + "%";
+  renderTypes(s.top_types || []);
+  renderFear(s);
+  $("eye-note").textContent = s.casino ? "the board: A far left, K far right" : "";
+  $("table").classList.toggle("hidden", !s.casino);
+  if (s.casino) renderCasino(s.casino); else banner(null);
+  $("keys").classList.toggle("hidden", !s.actions);
+  if (s.actions) renderKeys(s.actions);
+  const stims = s.pokes && s.pokes.length;
+  $("stims").classList.toggle("hidden", !stims);
+  if (stims) renderStims(s.pokes);
+  $("stop").classList.toggle("hidden", !s.pokes);
+  const log = (s.log || []).slice(0, 3);
+  $("log").classList.toggle("hidden", !log.length);
+  $("log").innerHTML = log.map((l) => `<div>${esc(l)}</div>`).join("");
+}
+
+load().catch((e) => { $("title").textContent = " · could not load the brain: " + e.message; });
+setInterval(pollActivity, 50);
+setInterval(pollState, 125);
+setInterval(pollEye, 250);
+</script>
+</body>
+</html>

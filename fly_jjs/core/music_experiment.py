@@ -2,7 +2,6 @@ import time
 import os
 import sys
 import json
-import socket
 import threading
 import subprocess
 import numpy as np
@@ -112,7 +111,8 @@ class ThreadedHTTPServer(socketserver.ThreadingTCPServer):
 
 
 def start_dashboard_server():
-    server = ThreadedHTTPServer(("", dashboard_port), DashboardHandler)
+    # Local only: the dashboard is for this computer, not the whole network.
+    server = ThreadedHTTPServer(("127.0.0.1", dashboard_port), DashboardHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     print(f"[Server] Dashboard running at http://localhost:{dashboard_port}")
@@ -124,7 +124,7 @@ def download_audio(target_url=YOUTUBE_URL, target_file=AUDIO_FILE):
         print(f"[Audio] Found cached audio: {target_file}")
         return True
 
-    print(f"[Audio] Downloading from YouTube...")
+    print("[Audio] Downloading from YouTube...")
     print(f"[Audio] URL: {target_url}")
 
     try:
@@ -149,7 +149,7 @@ def download_audio(target_url=YOUTUBE_URL, target_file=AUDIO_FILE):
             result = subprocess.run(cmd2, capture_output=True, text=True, timeout=120)
 
         if os.path.exists(target_file):
-            print(f"[Audio] Download complete!")
+            print("[Audio] Download complete!")
             return True
         else:
             base = target_file.replace(".wav", "")
@@ -158,7 +158,7 @@ def download_audio(target_url=YOUTUBE_URL, target_file=AUDIO_FILE):
                     os.rename(base + ext, target_file)
                     print(f"[Audio] Download complete (converted from {ext})")
                     return True
-            print(f"[Audio] Download failed.")
+            print("[Audio] Download failed.")
             return False
     except Exception as e:
         print(f"[Audio] Download error: {e}")
@@ -380,7 +380,7 @@ class NeuralHealthTracker:
 def run_music_experiment(custom_url=None):
     import webbrowser
     import hashlib
-    from flybrain import FlyBrain, FeatureDetectors
+    from flybrain import FlyBrain
 
     url_to_use = custom_url if custom_url else YOUTUBE_URL
     url_hash = hashlib.md5(url_to_use.encode()).hexdigest()[:8]
@@ -392,19 +392,24 @@ def run_music_experiment(custom_url=None):
 
     print("\n[Step 1] Loading connectome...")
     brain = FlyBrain(device="cpu")
-    fd = FeatureDetectors(brain)
     dns = brain.cells(["descending_neuron"])
     num_dns = len(dns)
+    cell_types = [str(t) for t in np.unique(brain.cell_type)]
 
-    dans = brain.cells(["DAN"])
+    # Reward dopamine neurons (PAM cluster) get the beat.
+    dans = brain.cells([t for t in cell_types if t.startswith("PAM")])
     if len(dans) == 0:
         dans = dns[:50]
 
-    auditory_neurons = brain.cells(["JON", "AMMC", "WED"])
+    # The fly's ear: Johnston's organ neurons. JO-A and JO-B carry sound vibration; the
+    # rest (JO-C/D/E...) respond to slower antenna deflection.
+    auditory_neurons = brain.cells([t for t in cell_types if t.startswith(("JO-A", "JO-B"))])
     if len(auditory_neurons) < 64:
-        auditory_neurons = brain.cells(["KenyonCell"])
-        if len(auditory_neurons) < 64:
-            auditory_neurons = dns[:200]
+        auditory_neurons = brain.cells([t for t in cell_types if t.startswith(("JO-", "AMMC", "WED"))])
+    if len(auditory_neurons) < 64:
+        print("[Brain] No auditory neurons found in this connectome; using descending neurons instead.")
+        auditory_neurons = dns[:200]
+    print(f"[Brain] {len(auditory_neurons)} auditory neurons (Johnston's organ) will hear the music")
 
     n_aud = len(auditory_neurons)
     freq_neuron_map = {
@@ -416,9 +421,6 @@ def run_music_experiment(custom_url=None):
         "ultra_high": auditory_neurons[5 * n_aud // 6:],
     }
 
-    stress_neurons = brain.cells(["OA"])
-    if len(stress_neurons) < 20:
-        stress_neurons = dns[270:320]
 
     populations = {
         "escape": dns[170:200],
@@ -544,6 +546,9 @@ def run_music_experiment(custom_url=None):
             step += 1
     except KeyboardInterrupt:
         print("\n[Experiment] Interrupted by user.")
+    finally:
+        server.shutdown()
+        server.server_close()
 
     print("\n[Experiment] Completed successfully!")
 

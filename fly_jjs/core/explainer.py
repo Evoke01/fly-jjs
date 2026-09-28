@@ -22,7 +22,9 @@ Instead of using basic bots, we connected the **actual 3D brain wiring map (conn
 
 ### 🧠 Core Features & Upgrades:
 - **👁️ Compound Eyes (8x8 to 320x240):** The screen is split into a left and right eye and turned into brightness, darkness, motion and color maps, watched by ~2,400 of the fly's own visual neurons.
-- **🎯 Target Lock Camera:** Automatically tracks opponents and centers the camera using smooth mouse movement.
+- **🎯 Target Lock Camera:** Follows one opponent (ignoring you and the HUD), turns the camera smoothly toward them and sweeps to search when nobody is in view. Turn on Shift Lock in Roblox.
+- **🧠 59,310 Neurons Read:** The fly's decisions come from everything downstream of its eyes, not just its 1,314 descending neurons.
+- **🥊 Fighting Instincts:** Close in when far, strike when in reach, block or dodge incoming attacks, circle to the side. Keys are held like a player holds them.
 - **🔮 Pattern Predictor:** Detects opponent motion spikes to predict dashes and incoming attacks.
 - **🧪 Dopamine = Surprise:**
   - Unexpected hit / Kill   ➔ **Dopamine Spike** on the fly's reward neurons
@@ -30,6 +32,10 @@ Instead of using basic bots, we connected the **actual 3D brain wiring map (conn
   - The fly tries moves on purpose and keeps the ones that pay off.
 - **🍬 Manual Reward Mode `[M]`:** Press `+` to treat or `-` to punish the fly while it fights (works while Roblox has focus)!
 - **📡 Live Telemetry `[L]`:** Watch a running session's brain from a second terminal.
+- **🏟️ Arena `[A]`:** Watch and train the fly in a simulated JJS fight, no Roblox needed.
+- **🎯 Calibrate `[C]`:** Show the fly where your health bars and your character are, once.
+- **🧠 3D Brain `[B]`:** All 166,700 neurons live in your browser; poke the fly and watch it react.
+- **🎰 Casino `[G]`:** The fly gambles its life vs a bot, with a terror meter read from its real fear circuit.
 
 ---
 
@@ -56,6 +62,8 @@ Instead of using basic bots, we connected the **actual 3D brain wiring map (conn
   • Target Lock Camera Tracking
   • Pattern Burst Predictor
   • Dopamine = surprise (reward-prediction-error learning)
-  • Manual Treat/Penalty Mode [M] and Live Telemetry [L]
+  • Reads 59,310 neurons; fighting instincts; held keys & camera tracking
+  • Manual Treat/Penalty Mode [M], Live Telemetry [L], Arena [A], Calibrate [C]
+  • 3D Brain [B]: every neuron live in the browser | Casino [G]: gambling with fear
   """)
         input("  Press Enter to return to main menu...")
