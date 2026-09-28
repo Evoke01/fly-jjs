@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from fly_jjs.core.arena import M1, Arena, ArenaInput, _angle_to
+from fly_jjs.core.arena import M1, Arena, ArenaInput, _angle_to, scoreboard
 from fly_jjs.core.calibrate import calibration_from_boxes
 from fly_jjs.core.combat import DEFAULT_HP_BARS, REST_LOGIT, Instincts, RewardSystem, bar_fill, persistence_logits
 from fly_jjs.core.actions import ACTION_NAMES, NUM_ACTIONS
@@ -87,6 +87,19 @@ class TestArenaMechanics(unittest.TestCase):
         reward, events = rewards.compute(0.5, 0.0, {"melee"}, arena.render(), final=True)
         self.assertTrue(any("KILLED OPPONENT" in e for e in events))
         self.assertGreater(reward, 5.0)
+
+    def test_scoreboard_for_the_dashboard(self):
+        arena = Arena(seed=0)
+        arena.player["hp"], arena.opp["hp"], arena.time = 72.0, 35.5, 12.3
+        board = scoreboard(arena, 2, 10, [{"won": True}, {"won": False}])
+        self.assertEqual((board["left"]["value"], board["right"]["value"]), (72.0, 35.5))
+        self.assertEqual(board["label"], "Fight 3 of 10")
+        self.assertEqual((board["record"]["left"], board["record"]["right"]), (1, 1))
+        # The fly's reward system reads the same health off the rendered bars.
+        rewards = RewardSystem()
+        rewards.compute(0.0, 0.0, set(), arena.render(), final=True)
+        self.assertAlmostEqual(100 * rewards.our_health, board["left"]["value"], delta=5)
+        self.assertAlmostEqual(100 * rewards.enemy_health, board["right"]["value"], delta=5)
 
     def test_fight_ends_with_a_result(self):
         arena = Arena(seed=0, max_seconds=5.0)

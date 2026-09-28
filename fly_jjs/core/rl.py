@@ -202,8 +202,16 @@ def run_rl(manual_mode=False):
                 publisher.publish(snapshot(step, agent, fps, res_mode, events_log))
                 if dash is not None and frames % 4 == 0:
                     dash.show_eye(img)
+                    rw = agent.rewards
                     dash.publish(mode="manual" if manual_mode else "play", title="Playing Jujutsu Shenanigans",
-                                 actions=sorted(step.actions), log=list(events_log)[-4:][::-1])
+                                 actions=sorted(step.actions), log=list(events_log)[-4:][::-1],
+                                 fight={"left": {"name": "Fly", "value": round(100 * rw.our_health), "max": 100},
+                                        "right": {"name": "Opponent", "value": round(100 * rw.enemy_health),
+                                                  "max": 100},
+                                        "label": "Read from the health bars on screen",
+                                        "clock": f"frame {frames}",
+                                        "record": {"what": "Knockouts", "left": rw.total_kills,
+                                                   "right": rw.total_deaths}})
 
                 if time.time() - last_save_time > 60:
                     agent.learner.save(WEIGHTS_PATH)

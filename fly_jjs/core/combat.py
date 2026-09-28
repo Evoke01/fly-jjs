@@ -165,6 +165,7 @@ class RewardSystem:
         self.total_kills = 0
         self.total_deaths = 0
         self.our_health = 1.0
+        self.enemy_health = 1.0
 
     def _sample_our_health(self, img):
         bar = self.bars["self"]
@@ -197,6 +198,7 @@ class RewardSystem:
         our_hp = self._self_hist[-1] if final else float(np.median(self._self_hist))
         enemy_hp = self._enemy_hist[-1] if final else float(np.median(self._enemy_hist))
         self.our_health = our_hp
+        self.enemy_health = enemy_hp
 
         if self.prev_our_health is not None:
             lost = self.prev_our_health - our_hp

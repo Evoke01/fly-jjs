@@ -12,6 +12,7 @@ served on 127.0.0.1 only.
 """
 import json
 import os
+import sys
 import threading
 import time
 import webbrowser
@@ -465,7 +466,7 @@ class BrainDashboard:
             return self.url
         for port in range(self.port, self.port + 20):
             try:
-                self._server = ThreadingHTTPServer(("127.0.0.1", port), _Handler)
+                self._server = _Server(("127.0.0.1", port), _Handler)
                 break
             except OSError:
                 continue
@@ -488,6 +489,14 @@ class BrainDashboard:
             self._server.shutdown()
             self._server.server_close()
             self._server = None
+
+
+class _Server(ThreadingHTTPServer):
+    def handle_error(self, request, client_address):
+        # A closed or reloaded tab drops its requests mid-reply; that's not worth a traceback.
+        if isinstance(sys.exc_info()[1], ConnectionError):
+            return
+        super().handle_error(request, client_address)
 
 
 class _Handler(BaseHTTPRequestHandler):

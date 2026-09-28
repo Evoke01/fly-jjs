@@ -450,6 +450,16 @@ def _arena_brain_meta(path):
                        "created": time.strftime("%Y-%m-%d %H:%M:%S")}, f, indent=2)
 
 
+def scoreboard(arena, n, fights, results):
+    """Health bars and score for the dashboard, during fight `n` (from 0) of `fights`."""
+    wins = sum(r["won"] for r in results)
+    return {"left": {"name": "Fly", "value": round(arena.player["hp"], 1), "max": 100},
+            "right": {"name": "Opponent", "value": round(arena.opp["hp"], 1), "max": 100},
+            "label": f"Fight {n + 1} of {fights}",
+            "clock": f"{arena.time:.0f} / {arena.max_seconds:.0f} s",
+            "record": {"what": "Fights won", "left": wins, "right": len(results) - wins}}
+
+
 def run_arena(fights=10, learn=True, watch=True, difficulty=1.0, seed=None, brain_path=None,
               readout=None, instincts=None, verbose=True, dashboard=False):
     """Let the fly fight simulated opponents. Returns one result dict per fight.
@@ -494,8 +504,7 @@ def run_arena(fights=10, learn=True, watch=True, difficulty=1.0, seed=None, brai
             if dash is not None and arena.frame % 3 == 0:
                 dash.show_eye(img)
                 dash.publish(mode="arena", title=f"Arena fight {n + 1} of {fights}", t=round(arena.time, 1),
-                             actions=sorted(step.actions), log=[f"Fly {arena.player['hp']:.0f} HP, "
-                                                                f"opponent {arena.opp['hp']:.0f} HP"])
+                             actions=sorted(step.actions), fight=scoreboard(arena, n, fights, results))
             if watch:
                 view = cv2.resize(img[:, :, :3], (arena.width * 2, arena.height * 2), interpolation=cv2.INTER_NEAREST)
                 cv2.putText(view, f"Fight {n + 1}/{fights}  {arena.time:4.1f}s  dopamine {agent.learner.dopamine:+.2f}",
