@@ -150,6 +150,11 @@ def run_rl(manual_mode=False):
     manual = ManualRewards() if manual_mode else None
     publisher = TelemetryPublisher("manual" if manual_mode else "play")
     window = "Fly Brain RL"
+    dash = None
+    if cfg.get("dashboard"):
+        from fly_jjs.core.dashboard import DEFAULT_PORT, BrainDashboard
+        dash = BrainDashboard(components.brain, port=cfg.get("dashboard_port", DEFAULT_PORT)).attach(agent.body)
+        dash.start()
 
     events_log = deque(maxlen=8)
     last_save_time = time.time()
@@ -195,6 +200,10 @@ def run_rl(manual_mode=False):
                         manual.give(-MANUAL_REWARD)
 
                 publisher.publish(snapshot(step, agent, fps, res_mode, events_log))
+                if dash is not None and frames % 4 == 0:
+                    dash.show_eye(img)
+                    dash.publish(mode="manual" if manual_mode else "play", title="Playing Jujutsu Shenanigans",
+                                 actions=sorted(step.actions), log=list(events_log)[-4:][::-1])
 
                 if time.time() - last_save_time > 60:
                     agent.learner.save(WEIGHTS_PATH)
@@ -213,6 +222,8 @@ def run_rl(manual_mode=False):
         agent.release()          # never leave W (or anything) held down
         if manual is not None:
             manual.stop()
+        if dash is not None:
+            dash.stop()
         publisher.close()
         try:
             cv2.destroyAllWindows()

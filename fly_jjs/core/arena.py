@@ -451,7 +451,7 @@ def _arena_brain_meta(path):
 
 
 def run_arena(fights=10, learn=True, watch=True, difficulty=1.0, seed=None, brain_path=None,
-              readout=None, instincts=None, verbose=True):
+              readout=None, instincts=None, verbose=True, dashboard=False):
     """Let the fly fight simulated opponents. Returns one result dict per fight.
 
     The arena brain lives in the "arena" profile, so it never overwrites the brain you
@@ -476,6 +476,11 @@ def run_arena(fights=10, learn=True, watch=True, difficulty=1.0, seed=None, brai
     backend = ArenaInput()
     agent = FlyAgent(components, cfg, arena.width, arena.height, backend, learn=learn, readout=readout, seed=seed)
     agent.learner.load(path)
+    dash = None
+    if dashboard:
+        from fly_jjs.core.dashboard import DEFAULT_PORT, BrainDashboard
+        dash = BrainDashboard(components.brain, port=cfg.get("dashboard_port", DEFAULT_PORT)).attach(agent.body)
+        dash.start()
     window = "Fly Arena"
     results = []
     stop = False
@@ -486,6 +491,11 @@ def run_arena(fights=10, learn=True, watch=True, difficulty=1.0, seed=None, brai
             img = arena.render()
             step = agent.step(img, arena.time)
             arena.step(backend)
+            if dash is not None and arena.frame % 3 == 0:
+                dash.show_eye(img)
+                dash.publish(mode="arena", title=f"Arena fight {n + 1} of {fights}", t=round(arena.time, 1),
+                             actions=sorted(step.actions), log=[f"Fly {arena.player['hp']:.0f} HP, "
+                                                                f"opponent {arena.opp['hp']:.0f} HP"])
             if watch:
                 view = cv2.resize(img[:, :, :3], (arena.width * 2, arena.height * 2), interpolation=cv2.INTER_NEAREST)
                 cv2.putText(view, f"Fight {n + 1}/{fights}  {arena.time:4.1f}s  dopamine {agent.learner.dopamine:+.2f}",
@@ -512,4 +522,6 @@ def run_arena(fights=10, learn=True, watch=True, difficulty=1.0, seed=None, brai
             cv2.destroyWindow(window)
         except Exception:
             pass
+    if dash is not None:
+        dash.stop()
     return results

@@ -83,12 +83,17 @@ class FlyBody:
         self.pop_baseline = None
         self.fired = 0
         self.rates = np.zeros(len(self.readout), dtype=np.float32)
+        # Called with the spiking neurons after every brain step (3D dashboard, fear meter).
+        self.listeners = []
 
     @property
     def num_inputs(self):
         return len(self.readout)
 
-    def step(self, img, opp, threat, dopamine=0.0, pattern_burst=False):
+    def step(self, img, opp, threat, dopamine=0.0, pattern_burst=False, extra=()):
+        """One frame: `img` to the eyes, the opponent (dx, dy, size) and threat to the
+        looming/threat detectors, dopamine as reward or punishment, and `extra`
+        (neuron indices, voltage) pairs. Returns the readout's firing rates."""
         c = self.c
         opp_pos = (opp[0], opp[2]) if opp[2] > 0 else None
         if pattern_burst:
@@ -100,10 +105,13 @@ class FlyBody:
             injections.append((c.reward_dans, min(dopamine, 1.0) * DOPAMINE_DRIVE))
         elif dopamine < -0.05 and len(c.punish_dans):
             injections.append((c.punish_dans, min(-dopamine, 1.0) * DOPAMINE_DRIVE))
+        injections += list(extra)
 
         for _ in range(self.steps):
             fired = c.brain.step(inject=injections)
             self.rates = self.trace.observe(fired) * self.rate_scale
+            for listener in self.listeners:
+                listener(fired)
         self.fired = len(fired)
         return self.rates
 
