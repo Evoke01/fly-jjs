@@ -65,7 +65,7 @@ def print_rich_menu():
     table.add_row("[ A ]", "🏟️ Arena", "Watch & train the fly in a simulated JJS fight")
     table.add_row("[ C ]", "🎯 Calibrate", "Show the fly your health bars & your character")
     table.add_row("[ B ]", "🧠 3D Brain", "Every neuron live in your browser; poke the fly")
-    table.add_row("[ G ]", "🎰 Casino", "Card death match vs a bot: the loser gets shot")
+    table.add_row("[ G ]", "🎰 Casino", "Death match, slots, horse races: broke = shot")
     table.add_row("[ L ]", "📡 Live Telemetry", "Watch a running Play/Train session (2nd terminal)")
     table.add_row("[ U ]", "🔄 Check Updates", "Pull latest updates directly from GitHub")
     table.add_row("[ 0 ]", "❌ Exit System", "Shut down FlyBrain simulator")
@@ -107,7 +107,7 @@ def print_fallback_menu():
     print("  [ A ] 🏟️ Arena (Watch & Train in a Simulated Fight)")
     print("  [ C ] 🎯 Calibrate Health Bars & Your Character")
     print("  [ B ] 🧠 3D Brain (Every Neuron Live in Your Browser)")
-    print("  [ G ] 🎰 Casino (Card Death Match: the Loser Gets Shot)")
+    print("  [ G ] 🎰 Casino (Death Match, Slots, Horse Races: Broke = Shot)")
     print("  [ L ] 📡 Live Brain Telemetry (watch a running session)")
     print("  [ U ] 🔄 Check for Updates")
     print("  [ 0 ] ❌ Exit System\n")
@@ -229,65 +229,84 @@ def arena_menu():
 
 
 CASINO_BOTS = ("rookie", "pro", "random", "none")
+CASINO_GAMES = ("cards", "slots", "race")
 
 
 def casino_menu():
     import shutil
-    from fly_jjs.core.casino import BOTS, casino_memory_path, run_casino
+    from fly_jjs.core.casino import BOTS, GAMES, casino_memory_path, run_casino, wallet_path
     from fly_jjs.core.storage import BACKUPS_DIR
+    from fly_jjs.core.wallet import Wallet
     while True:
         cfg = ConfigManager.load_config()
         bot = cfg.get("casino_bot", "rookie")
+        game = cfg.get("casino_game", "cards")
+        loop = bool(cfg.get("casino_loop", False))
         fear = cfg.get("fear", 1.0)
         mood = "fearless" if fear == 0 else ("terrified" if fear >= 2 else "normal")
+        wallet = Wallet(wallet_path())
         clear_screen()
-        print("\x1b[38;5;213m  [+] Casino: a death match at Higher or Lower\x1b[0m\n")
-        print("  Three rounds of betting chips on whether the next card is higher or lower, the")
-        print("  last for double stakes. Then whoever has fewer chips gets shot. When the fly is")
-        print("  shot, the next fly takes its seat, keeping what the others learned. The 3D brain")
-        print("  view opens in your browser with the terror meter, read from the fly's real fear")
-        print("  circuit.\n")
-        print(f"  Opponent: {BOTS.get(bot, 'nobody (the fly plays alone)')}   |   Fear: {fear:g} ({mood})\n")
-        print("  [1] Watch the fly gamble (real time)")
+        print("\x1b[38;5;213m  [+] Casino: the fly gambles its money and its life\x1b[0m\n")
+        print("  Every fly sits down with $1,000; broke means shot. When a fly is shot, the next")
+        print("  one takes its seat, keeping what the others learned. The 3D view opens in your")
+        print("  browser with the terror meter, read from the fly's real fear circuit.\n")
+        print("  Death match: three rounds of Higher or Lower for chips; whoever is behind gets shot.")
+        print("  Slots: it spins or walks away. Horse races: totally random races, it bets on a horse.\n")
+        print(f"  Fly #{wallet.generation}: ${wallet.money:,}   |   Game: {GAMES[game]}   |   "
+              f"Opponent: {BOTS.get(bot, 'nobody (the fly plays the house)')}")
+        print(f"  Fear: {fear:g} ({mood})   |   Loop: {'on' if loop else 'off (one game, then Play again on the page)'}\n")
+        print("  [1] Play (opens the page)")
         print("  [2] Train fast")
-        print("  [3] Change opponent (Rookie, Pro, Random, nobody)")
-        print("  [4] Change fear (0 fearless, 1 normal, 2 terrified)")
-        print("  [5] Forget what the casino flies learned (kept as a backup)")
-        print("  [6] Back")
+        print("  [3] Change game (death match, slots, horse races)")
+        print("  [4] Change death match opponent (Rookie, Pro, Random, nobody)")
+        print("  [5] Change fear (0 fearless, 1 normal, 2 terrified)")
+        print("  [6] Loop on/off")
+        print("  [7] Forget what the casino flies learned, and their money (kept as a backup)")
+        print("  [8] Back")
         sub = input("\n  Select option > ").strip()
         opponent = None if bot == "none" else bot
         if sub == '1':
-            run_casino(mode="show", bot=opponent)
+            run_casino(game=game, mode="show", bot=opponent)
             input("\n  Press Enter to return...")
         elif sub == '2':
-            raw = input("  How many games? (Enter = 100, about 330 rounds): ").strip()
+            raw = input("  How many games? (Enter = 100): ").strip()
             games = int(raw) if raw.isdigit() and int(raw) > 0 else 100
-            casino = run_casino(games=games, mode="fast", bot=opponent)
-            s = casino.stats()
-            print(f"\n  {casino.games} games, {casino.rounds} rounds: smart picks {s['smart_pct']}%, "
-                  f"shot {s['deaths']} times, survived {s['survived']}.")
+            table = run_casino(game=game, games=games, mode="fast", bot=opponent)
+            if table is not None:
+                s = table.stats()
+                print(f"\n  {s['games']} games: flies shot {s['deaths']}; Fly #{table.wallet.generation} "
+                      f"has ${table.wallet.money:,}.")
             input("\n  Press Enter to return...")
         elif sub == '3':
-            cfg["casino_bot"] = CASINO_BOTS[(CASINO_BOTS.index(bot) + 1) % len(CASINO_BOTS)] if bot in CASINO_BOTS else "rookie"
+            cfg["casino_game"] = CASINO_GAMES[(CASINO_GAMES.index(game) + 1) % len(CASINO_GAMES)] if game in CASINO_GAMES else "cards"
             ConfigManager.save_config(cfg)
         elif sub == '4':
+            cfg["casino_bot"] = CASINO_BOTS[(CASINO_BOTS.index(bot) + 1) % len(CASINO_BOTS)] if bot in CASINO_BOTS else "rookie"
+            ConfigManager.save_config(cfg)
+        elif sub == '5':
             raw = input("  Fear strength 0-2 (0 fearless, 1 normal, 2 terrified): ").strip()
             try:
                 cfg["fear"] = min(2.0, max(0.0, float(raw)))
                 ConfigManager.save_config(cfg)
             except ValueError:
                 pass
-        elif sub == '5':
-            path = casino_memory_path()
-            if os.path.exists(path):
-                os.makedirs(BACKUPS_DIR, exist_ok=True)
-                backup = os.path.join(BACKUPS_DIR, time.strftime("casino_memory_%Y%m%d_%H%M%S.npz"))
-                shutil.move(path, backup)
-                print(f"\n  The casino flies start from scratch. Old memory saved to {backup}")
-            else:
-                print("\n  Nothing to forget yet.")
-            input("\n  Press Enter to return...")
         elif sub == '6':
+            cfg["casino_loop"] = not loop
+            ConfigManager.save_config(cfg)
+        elif sub == '7':
+            moved = []
+            os.makedirs(BACKUPS_DIR, exist_ok=True)
+            stamp = time.strftime("%Y%m%d_%H%M%S")
+            for path in (casino_memory_path(), wallet_path()):
+                if os.path.exists(path):
+                    name, ext = os.path.splitext(os.path.basename(path))
+                    backup = os.path.join(BACKUPS_DIR, f"{name}_{stamp}{ext}")
+                    shutil.move(path, backup)
+                    moved.append(backup)
+            print("\n  The casino flies start from scratch. Old files saved to " + ", ".join(moved) if moved
+                  else "\n  Nothing to forget yet.")
+            input("\n  Press Enter to return...")
+        elif sub == '8':
             break
 
 

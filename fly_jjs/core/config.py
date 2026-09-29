@@ -23,6 +23,8 @@ DEFAULT_CONFIG = {
     "dashboard_port": 8765,       # local port of the 3D brain view (127.0.0.1 only)
     "fear": 1.0,                  # casino: 0 = fearless, 1 = normal, 2 = terrified
     "casino_bot": "rookie",       # casino opponent: "random", "rookie", "pro" (or "none")
+    "casino_game": "cards",       # casino game: "cards" (death match), "slots", "race" (horse races)
+    "casino_loop": False,         # casino: play games back to back instead of one at a time
 }
 
 # The frame is shrunk to this grid before the fly's eyes compute contrast, colour and
@@ -107,6 +109,10 @@ class ConfigManager:
                 cfg["fear"] = DEFAULT_CONFIG["fear"]
             if cfg.get("casino_bot") not in ("random", "rookie", "pro", "none"):
                 cfg["casino_bot"] = DEFAULT_CONFIG["casino_bot"]
+            if cfg.get("casino_game") not in ("cards", "slots", "race"):
+                cfg["casino_game"] = DEFAULT_CONFIG["casino_game"]
+            if not isinstance(cfg.get("casino_loop"), bool):
+                cfg["casino_loop"] = DEFAULT_CONFIG["casino_loop"]
             return cfg
         except Exception:
             return DEFAULT_CONFIG.copy()
