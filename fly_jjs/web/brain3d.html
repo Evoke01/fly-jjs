@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700;800&family=IBM+Plex+Serif:wght@600&display=swap" rel="stylesheet">
+<script type="importmap">{"imports": {"three": "/web/vendor/three.module.min.js"}}</script>
+<script type="module" src="/web/casino3d.js"></script>
 <style>
   :root {
     --bg: #0b0c0e; --panel: #111316; --raised: #16191d; --line: #23272d; --line-2: #30353c;
@@ -29,11 +31,12 @@
   button:hover, select:hover { border-color: #4a515a; }
   button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
   button.stop { color: var(--lose); border-color: rgba(255, 93, 82, 0.5); }
+  button.primary { background: var(--gold); color: #111; border-color: var(--gold); font-weight: 700; }
   select option { background: var(--panel); }
   * { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
 
   /* header */
-  #head { grid-area: head; display: flex; align-items: center; gap: 8px 22px; flex-wrap: wrap; padding: 9px 16px;
+  #head { grid-area: head; display: flex; align-items: center; gap: 8px 18px; flex-wrap: wrap; padding: 9px 16px;
     background: var(--panel); border-bottom: 1px solid var(--line); }
   .brand { display: flex; align-items: baseline; gap: 8px; }
   .brand .name { font: 700 17px var(--sans); }
@@ -45,6 +48,11 @@
   .now #mode { font-weight: 600; }
   .now #title { color: var(--dim); }
   .now #title:not(:empty)::before { content: " \2014  "; }
+  .purse { display: flex; align-items: baseline; gap: 8px; padding: 3px 12px; border: 1px solid var(--line-2); border-radius: 999px;
+    font-size: 12.5px; color: var(--dim); }
+  .purse b { font: 600 16px var(--mono); color: var(--gold); }
+  .purse .up { color: var(--win); font-family: var(--mono); }
+  .purse .down { color: var(--lose); font-family: var(--mono); }
   .tools { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .tools label { font-size: 12.5px; color: var(--dim); display: flex; align-items: center; gap: 6px; }
 
@@ -73,6 +81,18 @@
   .sw { width: 10px; height: 10px; border-radius: 2px; }
   .empty { font-size: 12.5px; color: var(--faint); }
 
+  /* wallet */
+  .bank { display: flex; align-items: baseline; gap: 10px; margin-top: 6px; }
+  .bank .big { font: 600 30px/1 var(--mono); color: var(--gold); }
+  .bank .up { color: var(--win); font: 600 14px var(--mono); }
+  .bank .down { color: var(--lose); font: 600 14px var(--mono); }
+  #w-chart { height: 64px; }
+  .ledger { margin-top: 8px; font-size: 12px; display: grid; gap: 2px; }
+  .ledger div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; color: var(--dim); }
+  .ledger div span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ledger .plus { color: var(--win); font-family: var(--mono); }
+  .ledger .minus { color: var(--lose); font-family: var(--mono); }
+
   /* what the fly has learned */
   .strategy { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 3px; margin-top: 6px; }
   .strategy .col { display: grid; grid-template-rows: 40px 40px 16px; }
@@ -90,9 +110,34 @@
   .kv div { display: grid; cursor: default; }
   .kv .k { font-size: 12px; color: var(--dim); white-space: nowrap; }
   .kv .v { font: 600 19px var(--mono); }
+  .tug { display: grid; gap: 5px; margin-top: 6px; font-size: 12.5px; }
+  .tug .row { display: grid; grid-template-columns: 96px minmax(0, 1fr) 52px; gap: 8px; align-items: center; }
+  .tug .row .v { text-align: right; font-family: var(--mono); }
+  .tug .track { position: relative; height: 10px; background: var(--line); border-radius: 2px; }
+  .tug .track::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--dim); }
+  .tug .track i { position: absolute; top: 0; bottom: 0; border-radius: 2px; }
+  .verdict { margin-top: 8px; font-weight: 700; }
+  .pickbars { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; align-items: end; height: 90px; margin-top: 8px; }
+  .pickbars .pb { display: grid; align-content: end; height: 100%; position: relative; }
+  .pickbars .pb i { display: block; background: var(--dim); border-radius: 2px 2px 0 0; }
+  .pickbars .pb b { display: block; background: var(--gold); border-radius: 2px 2px 0 0; }
+  .pickbars .pb span { position: absolute; top: -2px; left: 0; right: 0; text-align: center; font: 11px var(--mono); color: var(--dim); }
+  .pickaxis { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--faint); margin-top: 4px; }
 
-  /* stage: the brain, what the fly sees, and the brain's numbers */
+  /* stage: in the casino the game's 3D scene sits beside the brain */
   #stage { grid-area: stage; position: relative; overflow: hidden; min-height: 0; min-width: 0; }
+  #gamepane { position: absolute; left: 0; top: 0; bottom: 0; width: 58%; overflow: hidden; display: none; background: #0a0908;
+    border-right: 1px solid var(--line); }
+  #game3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #brainpane { position: absolute; inset: 0; overflow: hidden; }
+  #stage.split #gamepane { display: block; }
+  #stage.split #brainpane { left: 58%; }
+  #stage.split #eye { width: 168px; }
+  #stage.split #eye p { display: none; }
+  #stage.split #readout { font-size: 11px; line-height: 1.55; top: auto; bottom: 30px; }
+  .panelabel { position: absolute; left: 10px; top: 10px; font: 600 12px var(--sans); color: #fff; background: rgba(0, 0, 0, 0.45);
+    padding: 3px 8px; border-radius: 4px; pointer-events: none; z-index: 1; }
+  #nogl { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: var(--dim); padding: 20px; }
   #gl { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; display: block; }
   #gl:active { cursor: grabbing; }
   #readout { position: absolute; left: 14px; top: 12px; font: 12px/1.65 var(--mono); color: var(--dim); pointer-events: none; }
@@ -113,16 +158,26 @@
   #banner .t { font: 800 60px/1 var(--sans); letter-spacing: 0.04em; text-transform: uppercase; }
   #banner .d { font-size: 15px; margin: 10px auto 0; color: var(--ink); max-width: 520px; }
   #banner.dead .t { color: var(--lose); margin-top: 140px; }
-  #banner.jackpot .t { color: var(--gold); }
+  #banner.jackpot .t, #banner.good .t { color: var(--gold); }
   #banner.neutral .t { color: var(--ink); }
+  #sound-hint { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 5; font-size: 12.5px; background: var(--gold);
+    color: #111; padding: 4px 12px; border-radius: 999px; pointer-events: none; }
+
+  /* between games: play again, another game, loop */
+  #endpanel { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 5; }
+  .endbox { background: rgba(17, 19, 22, 0.94); border: 1px solid var(--line-2); border-radius: 8px; padding: 12px 14px; text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+  .endbox .endtitle { font: 600 14px var(--sans); margin-bottom: 8px; }
+  .endbox .endbtns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .endbox button.current { border-color: var(--gold); color: var(--gold); }
 
   /* the gun: a crosshair locks on, then a bullet hole with cracks */
-  #stage.danger::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  #brainpane.danger::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
     box-shadow: inset 0 0 140px rgba(255, 40, 30, 0.6); animation: pulse 0.7s ease-in-out infinite alternate; }
   @keyframes pulse { from { opacity: 0.45; } to { opacity: 1; } }
   .fxmark { position: absolute; left: 50%; top: 50%; pointer-events: none; z-index: 2; }
-  #stage > .fxmark { top: 40%; }
   .fxmark svg { display: block; width: 100%; height: 100%; }
+  #brainpane > .fxmark { top: 40%; }
   .fxmark.cross { width: 190px; height: 190px; margin: -95px 0 0 -95px; color: var(--fear);
     animation: lockon 1.2s cubic-bezier(.2, .8, .3, 1) forwards, sway 0.5s ease-in-out 1.2s infinite alternate; }
   .fxmark.hole { width: 170px; height: 170px; margin: -85px 0 0 -85px; animation: holein 0.1s ease-out; }
@@ -136,6 +191,7 @@
   #jackpot { position: absolute; inset: 0; display: grid; place-items: center; z-index: 4; overflow: hidden;
     background: radial-gradient(closest-side, rgba(42, 10, 58, 0.9), rgba(11, 12, 14, 0.35)); animation: fadein 0.25s ease-out; }
   @keyframes fadein { from { opacity: 0; } }
+  #jackpot.out { opacity: 0; transition: opacity 0.45s ease-in; }
   .jp-box { position: relative; padding: 28px 36px 22px; border: 2px solid var(--gold); border-radius: 14px; text-align: center;
     background: rgba(22, 8, 32, 0.94); box-shadow: 0 0 44px rgba(255, 79, 216, 0.35); max-width: calc(100% - 24px); }
   #jackpot.hit .jp-box { animation: strobe 0.2s steps(1) 8; }
@@ -192,7 +248,7 @@
   .side .tag.behind { background: var(--lose); animation: pulse 0.6s ease-in-out infinite alternate; }
   .liferow { display: flex; align-items: center; gap: 10px; }
   .side.bot .liferow { flex-direction: row-reverse; }
-  .liferow .num { font: 600 30px/1 var(--mono); min-width: 2.2ch; text-align: center; transition: color 0.2s; }
+  .liferow .num { font: 600 28px/1 var(--mono); min-width: 2.2ch; text-align: center; transition: color 0.2s; }
   .liferow .num.up { color: var(--win); }
   .liferow .num.down { color: var(--lose); }
   .hp { flex: 1; height: 16px; position: relative; background: #1d2126; border-radius: 3px; overflow: hidden; min-width: 60px; }
@@ -248,7 +304,7 @@
   .flip.reach { filter: drop-shadow(0 0 14px var(--neon)); }
   .flip.reach .inner { animation: wobble 0.8s ease-in-out; }
   @keyframes wobble { 20% { transform: rotateY(28deg); } 40% { transform: rotateY(-22deg); } 60% { transform: rotateY(38deg); } 80% { transform: rotateY(-12deg); } }
-  .status { font-size: 13.5px; max-width: 420px; min-height: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status { font-size: 13.5px; max-width: 440px; min-height: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .roundline, .record { font-size: 13px; color: var(--dim); }
   .roundline b, .record b { color: var(--ink); font-family: var(--mono); font-weight: 500; }
   .roundline .final { color: var(--lose); font-family: var(--sans); font-weight: 700; }
@@ -262,6 +318,32 @@
   .recent td.w { color: var(--win); }
   .recent td.l { color: var(--lose); }
   .recent td.new { background: var(--raised); }
+  .glyphs { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+  .glyphs span { font: 12px var(--mono); padding: 2px 6px; border-radius: 3px; background: var(--raised); color: var(--dim); }
+  .glyphs span.w { color: var(--win); }
+  .glyphs span.jp { color: #111; background: var(--gold); }
+  .pull { font-size: 12.5px; color: var(--dim); }
+  .pull b { color: var(--ink); font-family: var(--mono); }
+  /* the races */
+  .racegrid { display: grid; grid-template-columns: minmax(230px, 0.8fr) minmax(0, 1.6fr); gap: 20px; align-items: start; }
+  .betbox { display: grid; gap: 6px; }
+  .betbox .nm { font: 700 18px var(--sans); color: var(--fly); }
+  .betbox .bet { font-size: 14px; }
+  .betbox .bet b { font-family: var(--mono); }
+  .board { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .board td { padding: 2px 6px; white-space: nowrap; }
+  .board tr.pick td { background: rgba(242, 173, 58, 0.14); }
+  .board tr.pick td:first-child { box-shadow: inset 3px 0 0 var(--fly); }
+  .board tr.won td { background: rgba(255, 210, 63, 0.22); }
+  .board .pos { font: 600 13px var(--mono); color: var(--dim); width: 34px; }
+  .board .num { font: 700 12px var(--mono); width: 28px; text-align: center; border-radius: 3px; }
+  .board .silk { width: 18px; }
+  .board .silk i { display: block; width: 16px; height: 12px; border-radius: 2px; }
+  .board .odds { font-family: var(--mono); text-align: right; width: 56px; }
+  .board .prog { width: 38%; }
+  .board .prog div { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .board .prog i { display: block; height: 100%; background: var(--dim); }
+  .board tr.pick .prog i { background: var(--fly); }
   .keys { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
   .keys .cap { font-size: 12.5px; color: var(--dim); margin-right: 6px; }
   .key { min-width: 30px; padding: 4px 8px; text-align: center; font: 600 12px var(--mono); border: 1px solid var(--line-2);
@@ -271,10 +353,10 @@
   .stims .desc { margin: 0 0 0 8px; }
 
   #offline { position: fixed; top: 8px; left: 50%; transform: translateX(-50%); font-size: 13px; background: var(--lose); color: #111;
-    padding: 4px 12px; border-radius: 4px; display: none; z-index: 5; }
+    padding: 4px 12px; border-radius: 4px; display: none; z-index: 7; }
   #flash { position: fixed; inset: 0; pointer-events: none; background: var(--lose); opacity: 0; z-index: 6; }
 
-  /* focus mode (H): only the brain and the scoreboard */
+  /* focus mode (H): only the stage and the scoreboard */
   body.focus { grid-template-columns: 0 minmax(0, 1fr) 0; }
   body.focus #left, body.focus #right { display: none; }
   @media (max-width: 1180px) {
@@ -284,12 +366,16 @@
     body.focus { grid-template-columns: minmax(0, 1fr) 0; }
     .mid { min-width: 210px; }
     .recent { margin-left: 0; }
+    .racegrid { grid-template-columns: 1fr; }
   }
   @media (max-width: 760px) {
     html, body { height: auto; }
-    /* phones: the brain and the scoreboard first, the panels below */
+    /* phones: the stage and the scoreboard first, the panels below */
     body { display: flex; flex-direction: column; overflow: auto; }
     #stage { order: 1; flex: none; height: 60vh; }
+    #stage.split { height: 100vh; }
+    #stage.split #gamepane { width: 100%; bottom: 45%; border-right: 0; }
+    #stage.split #brainpane { left: 0; top: 55%; }
     #foot { order: 2; }
     #right { order: 3; }
     #left { order: 4; }
@@ -309,7 +395,7 @@
     .mid { order: -1; min-width: 0; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .fxmark.cross, #jackpot.hit .jp-box, #jackpot.hit #jp-lights i, .side .tag.behind, #stage.danger::after { animation: none; }
+    .fxmark.cross, #jackpot.hit .jp-box, #jackpot.hit #jp-lights i, .side .tag.behind, #brainpane.danger::after { animation: none; }
   }
 </style>
 </head>
@@ -317,8 +403,10 @@
 <header id="head">
   <div class="brand"><span class="name">Fly brain</span><span class="live">live</span></div>
   <div class="now"><span id="mode">Loading</span><span id="title"></span></div>
+  <div class="purse hidden" id="purse" title="The fly's money. Every fly starts with $1,000; broke means shot."><span id="purse-fly"></span><b id="purse-money"></b><span id="purse-change"></span></div>
   <div class="tools">
-    <button id="sound" class="hidden" title="Card flips, the jackpot and the gunshot, made in your browser">Sound: off</button>
+    <button id="sound" class="hidden" title="Card flips, the jackpot and the gunshot">Sound: on</button>
+    <button id="loop" class="hidden" title="Play games back to back instead of one at a time">Loop: off</button>
     <button id="spin" class="on" title="Slowly turn the brain">Spin</button>
     <button id="reset" title="Back to the starting view (R, or double-click the brain)">Reset view</button>
     <button id="glow" title="Glow where firing is unusual for each neuron, or at every spike">Glow: unusual</button>
@@ -337,12 +425,31 @@
 </header>
 
 <aside id="left">
+  <section id="walletcard" class="card hidden">
+    <h2>Wallet <span class="note" id="w-note"></span></h2>
+    <div class="bank"><span class="big" id="w-money">$1,000</span><span id="w-delta"></span></div>
+    <div class="plot-title"><span>This fly's money, game by game</span><span class="note" id="w-peak"></span></div>
+    <canvas id="w-chart" class="plot"></canvas>
+    <div class="ledger" id="w-ledger"></div>
+  </section>
   <section id="learned" class="card hidden">
     <h2>What the fly has learned</h2>
     <p class="desc" id="learned-sum"></p>
     <div id="strategy" class="strategy"></div>
     <div class="strategy-key"><span>up: says higher</span><span>down: says lower</span><span>taller: surer</span>
       <span><i style="background:var(--win)"></i>right call</span><span><i style="background:var(--lose)"></i>wrong call</span></div>
+  </section>
+  <section id="slotlearned" class="card hidden">
+    <h2>What pulls the fly to the lever</h2>
+    <p class="desc">Walking away keeps its money (0). What it has learned a spin is worth, plus the thrill, against its fear.</p>
+    <div class="tug" id="tug"></div>
+    <div class="verdict" id="verdict"></div>
+  </section>
+  <section id="racelearned" class="card hidden">
+    <h2>What the fly backs</h2>
+    <p class="desc">Every horse has the same one-in-six chance; only the odds differ. Its last 60 bets, favourite to longest odds (gold: won).</p>
+    <div class="pickbars" id="pickbars"></div>
+    <div class="pickaxis"><span>favourite</span><span>longest odds</span></div>
   </section>
   <section id="scorecard" class="card hidden">
     <h2>Scorecard</h2>
@@ -361,15 +468,20 @@
 </aside>
 
 <main id="stage">
-  <canvas id="gl"></canvas>
-  <div id="readout"></div>
-  <figure id="eye">
-    <figcaption>What the fly sees</figcaption>
-    <img id="eye-img" alt="What the fly is looking at">
-    <p id="eye-note"></p>
-  </figure>
-  <div id="loading">Loading 166,700 neurons</div>
-  <div id="hint">Drag to turn, scroll to zoom, shift-drag to pan</div>
+  <div id="gamepane"><canvas id="game3d"></canvas><div class="panelabel" id="game-label"></div><div id="nogl" class="hidden">The 3D table needs WebGL.</div></div>
+  <div id="brainpane">
+    <canvas id="gl"></canvas>
+    <div class="panelabel hidden" id="brain-label">Its brain, live</div>
+    <div id="readout"></div>
+    <figure id="eye">
+      <figcaption>What the fly sees</figcaption>
+      <img id="eye-img" alt="What the fly is looking at">
+      <p id="eye-note"></p>
+    </figure>
+    <div id="loading">Loading 166,700 neurons</div>
+    <div id="hint">Drag to turn, scroll to zoom, shift-drag to pan</div>
+    <div id="scale" class="hidden"><div class="bar" id="scale-bar"></div><span id="scale-label"></span></div>
+  </div>
   <div id="banner"><div class="t"></div><div class="d"></div></div>
   <div id="jackpot" class="hidden">
     <div id="jp-coins"></div>
@@ -380,7 +492,19 @@
       <div class="jp-detail" id="jp-detail"></div>
     </div>
   </div>
-  <div id="scale" class="hidden"><div class="bar" id="scale-bar"></div><span id="scale-label"></span></div>
+  <div id="endpanel" class="hidden">
+    <div class="endbox">
+      <div class="endtitle" id="end-title">Game over. What next?</div>
+      <div class="endbtns">
+        <button class="primary" data-poke="again">Play again</button>
+        <button data-poke="cards">Death match</button>
+        <button data-poke="slots">Slots</button>
+        <button data-poke="race">Horse races</button>
+        <button data-poke="loop" id="end-loop">Loop: off</button>
+      </div>
+    </div>
+  </div>
+  <div id="sound-hint" class="hidden">Click anywhere to let the page play sound</div>
 </main>
 
 <aside id="right">
@@ -426,6 +550,48 @@
     </div>
   </section>
 
+  <section id="slothud" class="hidden">
+    <div class="hud">
+      <div class="side fly" id="sl-side">
+        <div class="who"><span class="nm" id="sl-name">Fly</span><span class="tag hidden" id="sl-tag">UP</span></div>
+        <div class="liferow"><span class="num" id="sl-life">$0</span>
+          <div class="hp" id="sl-hp"><i class="trail" id="sl-trail"></i><i class="fill" id="sl-fill"></i><i class="start" id="sl-start"></i></div></div>
+        <div class="callrow"><span class="call" id="sl-call"></span><span class="res" id="sl-res"></span></div>
+      </div>
+      <div class="mid">
+        <div class="lead" id="s-lead"></div>
+        <div class="status" id="s-status"></div>
+        <div class="pull" id="s-pull"></div>
+      </div>
+      <div class="side bot" id="sr-side">
+        <div class="who"><span class="nm">The machine</span></div>
+        <div class="liferow"><span class="num" id="sr-life">$0</span></div>
+        <div class="callrow"><span class="call muted" id="sr-call"></span></div>
+      </div>
+    </div>
+    <div class="scoreline">
+      <div class="roundline" id="s-round"></div>
+      <div class="record" id="s-record"></div>
+      <div class="glyphs" id="s-spins"></div>
+    </div>
+  </section>
+
+  <section id="racehud" class="hidden">
+    <div class="racegrid">
+      <div class="betbox">
+        <div class="nm" id="r-name">Fly</div>
+        <div class="bet" id="r-bet"></div>
+        <div class="liferow"><span class="num" id="r-money">$0</span><span class="res" id="r-res"></span></div>
+        <div class="status" id="r-status"></div>
+      </div>
+      <table class="board" id="r-board"></table>
+    </div>
+    <div class="scoreline">
+      <div class="record" id="r-record"></div>
+      <div class="glyphs" id="r-last"></div>
+    </div>
+  </section>
+
   <section id="fight" class="hidden">
     <div class="hud">
       <div class="side fly">
@@ -458,11 +624,14 @@
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmt = (x) => Number(x || 0).toLocaleString("en-US");
+const money = (x) => (x < 0 ? "−$" : "$") + fmt(Math.abs(Math.round(x)));
+const signed = (x) => (x > 0 ? "+" : x < 0 ? "−" : "±") + "$" + fmt(Math.abs(Math.round(x)));
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 const show = (id, on) => $(id).classList.toggle("hidden", !on);
 const RANKS = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
 const SUITS = { S: "♠", H: "♥", D: "♦", C: "♣" };
 const MODES = { casino: "Casino", arena: "Arena", play: "Playing JJS", manual: "Playing JJS (manual rewards)", resting: "Resting brain", idle: "Waiting" };
+const GAME_NAMES = { cards: "Death match", slots: "Slots", race: "Horse races" };
 
 // ------------------------------------------------------------------ WebGL point cloud
 const canvas = $("gl");
@@ -592,6 +761,8 @@ $("circuit").onchange = (e) => { highlight = Number(e.target.value); };
 const toggleFocus = () => { document.body.classList.toggle("focus"); $("focus").classList.toggle("on", document.body.classList.contains("focus")); };
 $("focus").onclick = toggleFocus;
 $("stop").onclick = () => poke("stop");
+$("loop").onclick = () => poke("loop");
+for (const b of document.querySelectorAll("#endpanel [data-poke]")) b.onclick = () => poke(b.dataset.poke);
 window.addEventListener("keydown", (e) => {
   if (e.target.tagName === "SELECT" || e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.key === "h" || e.key === "H") toggleFocus();
@@ -679,7 +850,7 @@ async function pollState() {
   if (busy.state) return;
   busy.state = true;
   try { render(await (await fetch("/api/state", { cache: "no-store" })).json()); online(true); }
-  catch (e) { online(false); }
+  catch (e) { online(false); if (!(e instanceof TypeError)) console.error(e); }
   busy.state = false;
 }
 function pollEye() {
@@ -706,7 +877,46 @@ function renderTypes(types) {
     : `<div class="empty">Nothing unusual right now.</div>`;
 }
 
-// ------------------------------------------------------------------ left: what the fly learned (casino)
+// ------------------------------------------------------------------ left: the wallet
+function sizeCanvas(cv) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(1, Math.round(cv.clientWidth * dpr)), h = Math.max(1, Math.round(cv.clientHeight * dpr));
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  return dpr;
+}
+let walletKey = "";
+function renderWallet(w) {
+  if (!w) return;
+  const change = w.money - w.start;
+  $("purse-fly").textContent = `Fly #${w.generation}`;
+  $("purse-money").textContent = money(w.money);
+  $("purse-change").textContent = change ? signed(change) : "";
+  $("purse-change").className = change > 0 ? "up" : change < 0 ? "down" : "";
+  $("w-note").textContent = `Fly #${w.generation}; ${fmt(w.deaths)} ${w.deaths === 1 ? "fly" : "flies"} shot before it`;
+  $("w-money").textContent = money(w.money);
+  $("w-delta").textContent = change ? `${signed(change)} since it sat down` : "just sat down";
+  $("w-delta").className = change > 0 ? "up" : change < 0 ? "down" : "";
+  $("w-peak").textContent = `richest ever: Fly #${w.richest.fly}, ${money(w.richest.money)}`;
+  $("w-ledger").innerHTML = (w.ledger || []).slice(0, 4).map(([what, amount]) =>
+    `<div><span title="${esc(what)}">${esc(what)}</span><span class="${amount >= 0 ? "plus" : "minus"}">${signed(amount)}</span></div>`).join("");
+  const key = (w.history || []).join(",") + "|" + w.money;
+  if (key === walletKey) return;
+  walletKey = key;
+  const cv = $("w-chart"), dpr = sizeCanvas(cv), ctx = cv.getContext("2d"), W = cv.width, H = cv.height;
+  const pts = [...(w.history || []), w.money];
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#0e1013"; ctx.fillRect(0, 0, W, H);
+  const lo = Math.min(0, ...pts), hi = Math.max(w.start * 1.25, ...pts);
+  const y = (v) => H - 4 - ((v - lo) / (hi - lo || 1)) * (H - 8), x = (i) => 4 + (i / Math.max(1, pts.length - 1)) * (W - 8);
+  ctx.strokeStyle = "rgba(232,232,225,0.25)"; ctx.setLineDash([3 * dpr, 3 * dpr]); ctx.lineWidth = dpr;
+  ctx.beginPath(); ctx.moveTo(0, y(w.start)); ctx.lineTo(W, y(w.start)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = "#ffd23f"; ctx.lineWidth = 1.8 * dpr;
+  ctx.beginPath();
+  pts.forEach((v, i) => (i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v))));
+  ctx.stroke();
+}
+
+// ------------------------------------------------------------------ left: what the fly learned
 const stratCols = [];
 function renderStrategy(strat) {
   if (!stratCols.length) {
@@ -732,27 +942,45 @@ function renderStrategy(strat) {
   $("learned-sum").textContent = seen ? `Right call on ${right} of the ${seen} cards it has seen. A 7 is a coin flip either way.`
     : "Has not seen any cards yet.";
 }
-function renderScorecard(st) {
-  const items = [
-    ["Smart picks", st.smart_pct != null ? Math.round(st.smart_pct) + "%" : "–", "Picked the side with the better odds, last 100 rounds"],
-    ["Bets won", st.winrate_pct != null ? Math.round(st.winrate_pct) + "%" : "–", "Bets that won, last 100 rounds"],
-    ["Rounds", fmt(st.rounds), "Rounds played, all flies"],
-    ["This fly", "#" + (st.generation || 1), "When a fly is shot, the next one takes its seat and keeps what was learned"],
-    ["Flies shot", fmt(st.deaths), "Games that ended with the fly shot"],
-    ["Survived", fmt(st.survived), "Games the fly lived through"],
-  ];
+function renderScorecard(game, st) {
+  const pct = (v) => (v != null ? Math.round(v) + "%" : "–");
+  const common = [["This fly", "#" + (st.generation || 1), "When a fly is shot, the next one takes its seat and keeps what was learned"],
+    ["Flies shot", fmt(st.deaths), "Flies shot so far, in every game"]];
+  const items = game === "cards" ? [["Smart picks", pct(st.smart_pct), "Picked the side with the better odds, last 100 rounds"],
+    ["Bets won", pct(st.winrate_pct), "Bets that won, last 100 rounds"], ["Survived", fmt(st.survived), "Death matches the fly lived through"], ...common]
+    : game === "slots" ? [["Spins", fmt(st.spins), "Times it pulled the lever"], ["Jackpots", fmt(st.jackpots), "7-7-7"],
+      ["Paid back", pct(st.payback_pct), `What the machine has paid back of what went in (in the long run ${st.machine_pct}%)`],
+      ["Walked away", fmt(st.walked), "Visits it ended by walking away"], ...common]
+    : [["Races", fmt(st.races), "Races it bet on"], ["Won", fmt(st.won), "Bets that came in"],
+      ["Returned", pct(st.return_pct), "What its winning bets paid back, of everything it staked"], ["Long shots", fmt(st.long_shots), "Wins at odds of 10 or more"], ...common];
   $("kv").innerHTML = items.map(([k, v, tip]) => `<div title="${esc(tip)}"><span class="k">${k}</span><span class="v">${esc(v)}</span></div>`).join("");
+}
+function renderTug(c, terror) {
+  const v = c.value || { spin: 0, walk: 0, thrill: 0 }, d = c.decision || {};
+  const rows = [["Spin is worth", v.spin, "learned from every spin"], ["Thrill", v.thrill, "it likes pulling the lever"],
+    ["Fear", -terror, "its terror, read from its fear circuit"]];
+  const net = v.spin + v.thrill - terror - v.walk;
+  rows.push(["All together", net, "above the line: it wants to spin"]);
+  $("tug").innerHTML = rows.map(([k, val, tip]) => {
+    const w = Math.min(50, Math.abs(val) * 50), left = val >= 0 ? 50 : 50 - w;
+    return `<div class="row" title="${esc(tip)}"><span>${k}</span><span class="track"><i style="left:${left}%;width:${w}%;background:${val >= 0 ? "var(--win)" : "var(--lose)"}"></i></span>
+      <span class="v">${val >= 0 ? "+" : "−"}${Math.abs(val).toFixed(2)}</span></div>`;
+  }).join("");
+  const p = d.p_spin != null ? Math.round(100 * d.p_spin) : null;
+  $("verdict").textContent = p == null ? "" : p >= 50 ? `It wants to spin (${p}%).` : `It wants to walk away (${100 - p}%).`;
+  $("verdict").style.color = p == null ? "" : p >= 50 ? "var(--gold)" : "var(--win)";
+}
+function renderPicks(st) {
+  const picks = st.picks || [], counts = [0, 0, 0, 0, 0, 0], wins = [0, 0, 0, 0, 0, 0];
+  for (const [rank, won] of picks) { counts[rank]++; if (won) wins[rank]++; }
+  const most = Math.max(1, ...counts);
+  $("pickbars").innerHTML = counts.map((n, i) => `<div class="pb" title="${n} bets on the ${i === 0 ? "favourite" : i === 5 ? "longest odds" : `horse ranked ${i + 1} by odds`}, ${wins[i]} won">
+    <span>${n || ""}</span><i style="height:${((n - wins[i]) / most) * 70}px"></i><b style="height:${(wins[i] / most) * 70}px"></b></div>`).join("");
 }
 
 // ------------------------------------------------------------------ right: fear
 const LEVELS = [[0.6, "terrified", "#ff4b3e"], [0.35, "scared", "#f2ad3a"], [0.15, "uneasy", "#d8c64c"], [0, "calm", "#45d483"]];
 const history = [];
-function sizeCanvas(cv) {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const w = Math.max(1, Math.round(cv.clientWidth * dpr)), h = Math.max(1, Math.round(cv.clientHeight * dpr));
-  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
-  return dpr;
-}
 function drawTrace() {
   const cv = $("trace"), dpr = sizeCanvas(cv), ctx = cv.getContext("2d"), w = cv.width, h = cv.height;
   ctx.clearRect(0, 0, w, h);
@@ -828,14 +1056,42 @@ function renderFear(s) {
   drawRaster(s.raster);
 }
 
-// ------------------------------------------------------------------ sound (off until asked for)
-let actx = null, soundOn = false;
-try { soundOn = localStorage.getItem("fly-sound") === "on"; } catch (e) { soundOn = false; }
+// ------------------------------------------------------------------ sound: the real jackpot and gunshot, and a few made here
+let actx = null, soundOn = true, unlocked = false;
+try { soundOn = localStorage.getItem("fly-sound") !== "off"; } catch (e) { soundOn = true; }
+const SOUND_FILES = { shot: "/web/sounds/shot.mp3", jackpot: "/web/sounds/jackpot.mp3" };
+const soundBufs = {};
 function audio() {
-  if (!soundOn) return null;
+  if (!soundOn || !unlocked) return null;
   if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
   if (actx.state === "suspended") actx.resume();
   return actx;
+}
+async function loadSounds() {
+  const c = audio();
+  if (!c) return;
+  for (const [name, url] of Object.entries(SOUND_FILES)) {
+    if (soundBufs[name]) continue;
+    try { soundBufs[name] = await c.decodeAudioData(await (await fetch(url)).arrayBuffer()); } catch (e) { soundBufs[name] = null; }
+  }
+}
+function unlock() {
+  if (unlocked) return;
+  unlocked = true;
+  audio();
+  loadSounds();
+  $("sound-hint").classList.add("hidden");
+}
+window.addEventListener("pointerdown", unlock, { once: false });
+window.addEventListener("keydown", unlock, { once: false });
+function playFile(name, offset = 0, gain = 0.9) {
+  const c = audio(), buf = soundBufs[name];
+  if (!c || !buf) return false;
+  const src = c.createBufferSource(), g = c.createGain();
+  src.buffer = buf; g.gain.value = gain;
+  src.connect(g); g.connect(c.destination);
+  src.start(0, offset);
+  return true;
 }
 function envelope(ctx, node, t0, peak, dur) {
   const g = ctx.createGain();
@@ -865,27 +1121,31 @@ const SFX = {
   lose() { const c = audio(); if (c) tone(c, "sawtooth", 220, c.currentTime, 0.35, 0.1, 110); },
   heartbeat() { const c = audio(); if (!c) return; const t = c.currentTime; tone(c, "sine", 58, t, 0.16, 0.9, 40); tone(c, "sine", 52, t + 0.24, 0.16, 0.7, 36); },
   reach() { const c = audio(); if (c) tone(c, "square", 300, c.currentTime, 0.75, 0.06, 1200); },
+  reel() { const c = audio(); if (c) noise(c, c.currentTime, 0.05, 0.25, "bandpass", 900); },
+  // The Doom super shotgun: its file starts with 1.55 s of silence, skipped here.
   shot() {
+    if (playFile("shot", 1.55)) return;
     const c = audio(); if (!c) return; const t = c.currentTime;
     noise(c, t, 0.55, 1.0, "lowpass", 3200, 260);
     tone(c, "sine", 90, t, 0.4, 1.0, 32);
   },
+  // Hakari's jackpot: its second section (from 2.65 s) lands on the 7-7-7.
   jackpot() {
-    const c = audio(); if (!c) return; const t = c.currentTime;
+    if (playFile("jackpot", 0)) return;
+    const c = audio(); if (!c) return; const t = c.currentTime + 2.2;
     [523, 659, 784, 1047, 1319, 1568, 1319, 1568, 2093].forEach((f, i) => tone(c, "square", f, t + i * 0.075, 0.12, 0.07));
     [1047, 1319, 1568].forEach((f) => tone(c, "triangle", f, t + 0.7, 1.3, 0.12));
-    for (let i = 0; i < 10; i++) tone(c, "sine", 2400 + Math.random() * 1800, t + 0.8 + Math.random() * 1.4, 0.08, 0.05);
   },
 };
-function setSound(on, quiet) {
+function setSound(on) {
   soundOn = on;
   try { localStorage.setItem("fly-sound", on ? "on" : "off"); } catch (e) { /* private window */ }
   $("sound").textContent = "Sound: " + (on ? "on" : "off");
   $("sound").classList.toggle("on", on);
-  if (on && !quiet) SFX.flip();
+  if (on && unlocked) { loadSounds(); SFX.flip(); }
 }
-$("sound").onclick = () => setSound(!soundOn);
-setSound(soundOn, true);
+$("sound").onclick = () => { unlock(); setSound(!soundOn); };
+setSound(soundOn);
 
 // ------------------------------------------------------------------ show effects: flips, the gun, the jackpot
 const fx = { game: null, phase: "", nextKey: "", cardKey: "", flipAt: 0, pre: null, dead: 0, deadTarget: 0, shot: false, timers: [] };
@@ -910,14 +1170,14 @@ function mark(target, cls, html) {
   const el = document.createElement("div");
   el.className = "fxmark " + cls;
   el.innerHTML = html;
-  (target === "fly" ? $("stage") : $("mr-side")).appendChild(el);
+  (target === "fly" ? $("brainpane") : $("mr-side")).appendChild(el);
 }
 function clearMarks(cls) { for (const el of document.querySelectorAll(".fxmark" + (cls ? "." + cls : ""))) el.remove(); }
 function later(ms, f) { fx.timers.push(setTimeout(f, ms)); }
 function newGame() {
   fx.timers.forEach(clearTimeout); fx.timers = [];
   clearMarks();
-  $("stage").classList.remove("danger");
+  $("brainpane").classList.remove("danger");
   $("jackpot").className = "hidden";
   $("jp-coins").innerHTML = "";
   fx.deadTarget = 0;      // the next fly's brain comes to life
@@ -927,14 +1187,14 @@ function newGame() {
 function aim(targets) {
   for (const t of targets) mark(t, "cross", CROSSHAIR);
   if (targets.includes("fly")) {
-    $("stage").classList.add("danger");
+    $("brainpane").classList.add("danger");
     SFX.heartbeat(); later(700, SFX.heartbeat); later(1400, SFX.heartbeat);
   }
 }
 function shoot(targets, quiet) {
   fx.shot = true;
   clearMarks("cross");
-  $("stage").classList.remove("danger");
+  $("brainpane").classList.remove("danger");
   for (const t of targets) {
     mark(t, "hole", holeSVG());
     if (t === "fly") fx.deadTarget = 1;
@@ -967,23 +1227,30 @@ function coins() {
   $("jp-coins").innerHTML = html;
 }
 function jackpot(c) {
+  // Timed to the jackpot sound: three cards flip while it builds, the last one hangs
+  // ("reach"), and the 7-7-7 lands on its second section, 2.65 s in.
   const el = $("jackpot"), reels = [...el.querySelectorAll(".flip")];
   $("jp-detail").textContent = c.banner ? c.banner.detail : "";
   reels.forEach((r) => { r.classList.add("instant"); r.classList.remove("open", "reach"); });
   el.className = "";
   void el.offsetWidth;
   reels.forEach((r) => r.classList.remove("instant"));
+  SFX.jackpot();
   later(350, () => { reels[0].classList.add("open"); SFX.flip(); });
-  later(800, () => { reels[1].classList.add("open"); SFX.flip(); });
-  later(1150, () => { reels[2].classList.add("reach"); SFX.reach(); });
-  later(1950, () => { reels[2].classList.remove("reach"); reels[2].classList.add("open"); SFX.flip(); });
-  later(2250, () => { el.classList.add("hit"); coins(); SFX.jackpot(); });
+  later(850, () => { reels[1].classList.add("open"); SFX.flip(); });
+  later(1250, () => { reels[2].classList.add("reach"); });
+  later(2300, () => { reels[2].classList.remove("reach"); reels[2].classList.add("open"); SFX.flip(); });
+  later(2650, () => { el.classList.add("hit"); coins(); });
+  // and it clears away as the jackpot phase ends, rather than staying up between games
+  later(5200, () => el.classList.add("out"));
+  later(5700, () => { el.className = "hidden"; $("jp-coins").innerHTML = ""; });
 }
 // The page polls the game 8 times a second, so on a slow machine it can miss a short
 // phase: a shot it missed still happens when it next looks.
 function onPhase(c) {
-  if (c.game !== fx.game) { fx.game = c.game; newGame(); }
-  const key = `${c.game}|${c.round}|${c.phase}`;
+  const id = `${c.game}|${c.number}`;
+  if (id !== fx.game) { fx.game = id; newGame(); }
+  const key = `${id}|${c.round || 0}|${c.phase}|${c.spin ? c.spin.n : ""}`;
   if (key === fx.phase) return;
   fx.phase = key;
   if (!c.show) return;                 // fast training: no theatrics
@@ -991,9 +1258,12 @@ function onPhase(c) {
   if (c.phase === "aim") aim(targets);
   else if ((c.phase === "shot" || c.phase === "dead") && !fx.shot) shoot(targets);
   else if (c.phase === "jackpot") { if (targets.length && !fx.shot) shoot(targets, true); jackpot(c); }
+  else if (c.phase === "spin") { SFX.reel(); if (c.spin && c.spin.reach) later(Math.round(c.spin.stops[1] * 1000) + 60, SFX.reach); }
+  else if (c.phase === "paid" && c.spin) (c.spin.win ? SFX.win : SFX.lose)();
+  else if (c.phase === "finish" && c.result) (c.result.won ? SFX.win : SFX.lose)();
 }
 
-// ------------------------------------------------------------------ footer: shared by both scoreboards
+// ------------------------------------------------------------------ footer: shared by the scoreboards
 function setBar(prefix, value, max) {
   const w = (clamp01(value / (max || 1)) * 100).toFixed(1) + "%";
   $(prefix + "-fill").style.width = w;
@@ -1002,9 +1272,9 @@ function setBar(prefix, value, max) {
 }
 // A number flashes green or red when it changes, unless a new game just reset it.
 const lastLife = {}, flashTimers = {};
-function setLife(prefix, value, fresh) {
+function setLife(prefix, value, fresh, text) {
   const el = $(prefix + "-life"), prev = lastLife[prefix];
-  el.textContent = Math.round(value);
+  el.textContent = text != null ? text : Math.round(value);
   lastLife[prefix] = value;
   if (prev == null || fresh || prev === value) return;
   el.className = "num " + (value > prev ? "up" : "down");
@@ -1012,43 +1282,43 @@ function setLife(prefix, value, fresh) {
   flashTimers[prefix] = setTimeout(() => { el.className = "num"; }, 1100);
 }
 
-// ------------------------------------------------------------------ footer: the casino scoreboard
+// ------------------------------------------------------------------ footer: the death match
 function cardHTML(rank, suit, faceDown, big) {
   const size = big ? " big" : "";
   if (!rank || faceDown) return `<div class="pcard back${size}"></div>`;
   const sym = SUITS[suit] || SUITS.S, red = suit === "H" || suit === "D";
   return `<div class="pcard${size}${red ? " red" : ""}"><span class="ix">${RANKS[rank]}<br>${sym}</span><span class="c">${sym}</span><span class="ix br">${RANKS[rank]}<br>${sym}</span></div>`;
 }
-function seat(prefix, p, tag, fresh, start) {
+function seat(prefix, p, tag, fresh, start, cv) {
   $(prefix + "-name").textContent = p.name;
-  setLife(prefix, p.chips, fresh);
+  setLife(prefix, p.chips, fresh, money(p.chips * cv));
   setBar(prefix, p.chips, 2 * start);
   const tick = $(prefix + "-start"), bot = prefix === "mr";
   tick.style.display = "";
   tick.style.left = bot ? "auto" : "50%";
   tick.style.right = bot ? "50%" : "auto";
-  tick.title = `Started here, with ${start} chips`;
-  $(prefix + "-hp").title = `${p.chips} chips. The mark shows the ${start} each player starts with.`;
+  tick.title = `Started here, with ${money(start * cv)} in chips`;
+  $(prefix + "-hp").title = `${money(p.chips * cv)} in chips. The mark shows the ${money(start * cv)} each player buys in with.`;
   const t = $(prefix + "-lead");
   t.textContent = tag === "behind" ? "BEHIND" : "LEADS";
   t.className = "tag" + (tag === "behind" ? " behind" : "") + (tag ? "" : " hidden");
   const allIn = !p.result && p.bet > 0 && p.bet >= p.chips;
   $(prefix + "-call").innerHTML = p.shot ? "shot dead"
-    : p.choice ? `${allIn ? `<span class="allin">ALL IN</span> ` : "bets "}<b>${p.bet}</b> on <b>${p.choice.toUpperCase()}</b>`
+    : p.choice ? `${allIn ? `<span class="allin">ALL IN</span> ` : "bets "}<b>${money(p.bet * cv)}</b> on <b>${p.choice.toUpperCase()}</b>`
     : `<span class="muted">deciding…</span>`;
   const res = $(prefix + "-res");
   res.className = "res" + (p.shot ? " out" : p.result === "win" ? " win" : p.result === "lose" ? " lose" : "");
-  res.textContent = p.shot ? "SHOT" : p.result === "win" ? `WON +${p.bet}` : p.result === "lose" ? `LOST −${p.bet}` : "";
+  res.textContent = p.shot ? "SHOT" : p.result === "win" ? `WON ${signed(p.bet * cv)}` : p.result === "lose" ? `LOST ${signed(-p.bet * cv)}` : "";
   $(prefix + "-side").classList.toggle("dead", !!p.shot);
 }
-function narrate(c, f, b) {
+function narrate(c, f, b, cv) {
   const target = c.target || [], who = target.map((t) => (t === "fly" ? f.name : b ? b.name : "")).join(" and ");
   switch (c.phase) {
     case "wake": return `${f.name} takes the seat…`;
     case "think": return `${f.name} is looking at the ${RANKS[c.card]}…`;
     case "wait": return "Bets are in. The next card is face down…";
     case "reveal": {
-      const res = (p) => `${p.name} ${p.result === "win" ? "wins" : "loses"} ${p.bet}`;
+      const res = (p) => `${p.name} ${p.result === "win" ? "wins" : "loses"} ${money(p.bet * cv)}`;
       return c.next ? `${RANKS[c.next]} came. ${res(f)}${b ? `, ${res(b)}` : ""}.` : "";
     }
     case "aim": return `${who} ${target.length > 1 ? "are" : "is"} behind. The gun turns…`;
@@ -1060,9 +1330,9 @@ function narrate(c, f, b) {
   }
 }
 function renderMatch(c) {
-  const st = c.stats || {}, start = c.start_chips || 10, live = !!c.show;
-  const fresh = c.game !== renderMatch.game;
-  renderMatch.game = c.game;
+  const st = c.stats || {}, start = c.start_chips || 10, live = !!c.show, cv = c.chip_value || 10;
+  const fresh = c.number !== renderMatch.number;
+  renderMatch.number = c.number;
   // While the next card is still turning over, keep showing the bets as they were placed.
   if (c.phase === "wait") fx.pre = { fly: c.fly, bot: c.bot };
   const holding = live && c.phase === "reveal" && fx.pre && performance.now() - fx.flipAt < 600;
@@ -1070,27 +1340,27 @@ function renderMatch(c) {
   const rival = b ? b.chips : start, diff = f.chips - rival;
   const decisive = c.round >= c.rounds;
   const tagFor = (mine, theirs) => (mine > theirs ? "leads" : mine < theirs && decisive ? "behind" : "");
-  seat("ml", f, tagFor(f.chips, rival), fresh, start);
+  seat("ml", f, tagFor(f.chips, rival), fresh, start, cv);
   if (b) {
-    seat("mr", b, tagFor(b.chips, f.chips), fresh, start);
+    seat("mr", b, tagFor(b.chips, f.chips), fresh, start, cv);
   } else {
-    // Alone at the table the fly plays the house, which never moves off the chips it started with.
+    // Alone at the table the fly plays the house, which never moves off what it started with.
     $("mr-name").textContent = "The house";
-    setLife("mr", start, true);
+    setLife("mr", start, true, money(start * cv));
     setBar("mr", start, 2 * start);
     $("mr-start").style.display = "none";
-    $("mr-hp").title = `End with fewer than ${start} chips and the fly is shot.`;
+    $("mr-hp").title = `End with less than ${money(start * cv)} and the fly is shot.`;
     $("mr-lead").className = "tag hidden";
-    $("mr-call").innerHTML = `<span class="muted">shoots the fly if it ends below ${start}</span>`;
+    $("mr-call").innerHTML = `<span class="muted">shoots the fly if it ends below ${money(start * cv)}</span>`;
     $("mr-res").className = "res"; $("mr-res").textContent = "";
     $("mr-side").classList.remove("dead");
   }
   const lead = $("m-lead");
   if (b) {
-    lead.textContent = diff > 0 ? `${f.name} leads by ${diff}` : diff < 0 ? `${b.name} leads by ${-diff}` : "Level";
+    lead.textContent = diff > 0 ? `${f.name} leads by ${money(diff * cv)}` : diff < 0 ? `${b.name} leads by ${money(-diff * cv)}` : "Level";
     lead.style.color = diff > 0 ? "var(--fly)" : diff < 0 ? "var(--bot)" : "var(--ink)";
   } else {
-    lead.textContent = diff > 0 ? `${f.name} is up ${diff}` : diff < 0 ? `${f.name} is down ${-diff}` : `${f.name} is even`;
+    lead.textContent = diff > 0 ? `${f.name} is up ${money(diff * cv)}` : diff < 0 ? `${f.name} is down ${money(-diff * cv)}` : `${f.name} is even`;
     lead.style.color = diff > 0 ? "var(--fly)" : diff < 0 ? "var(--lose)" : "var(--ink)";
   }
   // The dealt card slides over; the next card waits face down and flips over on the reveal.
@@ -1098,7 +1368,7 @@ function renderMatch(c) {
   if (cardKey !== fx.cardKey) {
     fx.cardKey = cardKey;
     $("m-card").innerHTML = cardHTML(c.card, c.card_suit);
-    if (live) { const el = $("m-card").firstChild; el.classList.add("slide-in"); }
+    if (live && c.card) $("m-card").firstChild.classList.add("slide-in");
   }
   const nextKey = c.next ? `${c.next}${c.next_suit}` : "";
   if (nextKey !== fx.nextKey) {
@@ -1126,7 +1396,7 @@ function renderMatch(c) {
       }, 600);
     }
   }
-  $("m-status").textContent = holding ? "The next card turns over…" : narrate(c, f, b);
+  $("m-status").textContent = holding ? "The next card turns over…" : narrate(c, f, b, cv);
   $("m-round").innerHTML = c.round > c.rounds
     ? `<span class="final">Sudden death</span> · still level after ${c.rounds}: this round decides`
     : c.round === c.rounds
@@ -1135,15 +1405,14 @@ function renderMatch(c) {
   const d = st.duels;
   $("m-record").innerHTML = d ? `Games won: <b style="color:var(--fly)">fly ${d.fly}</b> · <b style="color:var(--bot)">bot ${d.bot}</b>${d.draw ? ` · ${d.draw} drawn` : ""}`
     : `Survived <b>${st.survived || 0}</b> · shot <b>${st.deaths || 0}</b>`;
-  renderRecent(c.history || [], !!b, holding);
-  // The jackpot has its own show; everything else uses the plain banner.
+  renderRecent(c.history || [], !!b, holding, cv);
   banner(c.banner && !(live && c.banner.kind === "jackpot") ? c.banner : null);
 }
-function renderRecent(hist, withBot, holding) {
+function renderRecent(hist, withBot, holding, cv) {
   const last = hist.slice(holding ? -9 : -8, holding ? -1 : undefined).slice(-8);
   if (!last.length) { $("m-recent").innerHTML = `<tr><td class="empty">No rounds yet this game.</td></tr>`; return; }
   const newest = last.length - 1, cls = (i) => (i === newest ? " new" : "");
-  const cell = (p, i) => `<td class="${p.won ? "w" : "l"}${cls(i)}">${p.won ? "+" : "−"}${p.bet}</td>`;
+  const cell = (p, i) => `<td class="${p.won ? "w" : "l"}${cls(i)}">${signed((p.won ? 1 : -1) * p.bet * cv)}</td>`;
   const head = last.map((h, i) => `<td class="${cls(i)}" title="round ${h.round}">${RANKS[h.card]}→${RANKS[h.next]}</td>`).join("");
   $("m-recent").innerHTML = `<tr><th>this game</th>${head}</tr><tr><th class="fly">fly</th>${last.map((h, i) => cell(h.fly, i)).join("")}</tr>`
     + (withBot ? `<tr><th class="bot">bot</th>${last.map((h, i) => (h.bot ? cell(h.bot, i) : "<td></td>")).join("")}</tr>` : "");
@@ -1158,6 +1427,105 @@ function banner(b) {
   el.querySelector(".t").textContent = b ? b.title : "";
   el.querySelector(".d").textContent = b ? b.detail : "";
   el.style.opacity = b ? 1 : 0;
+}
+
+// ------------------------------------------------------------------ footer: the slot machine
+const GLYPH = { SEVEN: "7", BAR: "BAR", BELL: "bell", CHERRY: "cherry", LEMON: "lemon" };
+function renderSlots(c, s) {
+  const w = c.wallet || {}, start = c.start_money || w.money || 1, now = w.money || 0, visit = c.visit || [];
+  const fresh = c.number !== renderSlots.number;
+  renderSlots.number = c.number;
+  const spin = c.spin, spinning = c.phase === "spin" || c.phase === "pull";
+  const shown = spinning && spin ? now + spin.bet - (c.phase === "spin" ? spin.bet : 0) : now;
+  $("sl-name").textContent = c.fly ? c.fly.name : "Fly";
+  setLife("sl", now, fresh, money(now));
+  setBar("sl", now, 2 * start);
+  $("sl-start").style.left = "50%";
+  $("sl-start").title = `Walked in with ${money(start)}`;
+  const change = now - start;
+  const tag = $("sl-tag");
+  tag.textContent = change >= 0 ? "UP" : "DOWN";
+  tag.className = "tag" + (change < 0 ? " behind" : "") + (change === 0 ? " hidden" : "");
+  $("sl-call").innerHTML = c.fly && c.fly.shot ? "shot dead" : spin && (spinning || c.phase === "paid") ? `spin <b>${spin.n}</b> · bets <b>${money(spin.bet)}</b>` : `<span class="muted">at the machine</span>`;
+  const res = $("sl-res");
+  const done = spin && ["paid", "jackpot"].includes(c.phase);
+  res.className = "res" + (c.fly && c.fly.shot ? " out" : done ? (spin.win ? " win" : " lose") : "");
+  res.textContent = c.fly && c.fly.shot ? "SHOT" : done ? (spin.win ? `WON ${signed(spin.win - spin.bet)}` : `LOST ${signed(-spin.bet)}`) : "";
+  $("sl-side").classList.toggle("dead", !!(c.fly && c.fly.shot));
+  $("sr-life").textContent = signed(start - now).replace("±", "");
+  $("sr-call").textContent = start - now >= 0 ? "taken from this fly this visit" : "paid out to this fly this visit";
+  const lead = $("s-lead");
+  lead.textContent = change > 0 ? `Up ${money(change)} on this visit` : change < 0 ? `Down ${money(-change)} on this visit` : "Even on this visit";
+  lead.style.color = change > 0 ? "var(--fly)" : change < 0 ? "var(--lose)" : "var(--ink)";
+  const name = (r) => r.map((x) => GLYPH[x]).join(" · ");
+  let status = "";
+  if (c.phase === "wake") status = `${c.fly.name} walks up to the machine…`;
+  else if (c.phase === "think") status = visit.length ? "Spin again, or walk away?" : "It looks at the machine…";
+  else if (c.phase === "pull") status = "It pulls the lever…";
+  else if (c.phase === "spin") status = spin && spin.reach ? "7 · 7 · … the last reel is still spinning!" : "The reels are spinning…";
+  else if (c.phase === "paid" && spin) status = spin.win ? `${name(spin.reels)}: ${spin.name}! Won ${money(spin.win)}.` : `${name(spin.reels)}. Nothing.`;
+  else if (c.phase === "jackpot") status = "7 · 7 · 7. JACKPOT.";
+  else if (c.phase === "walk") status = c.banner ? c.banner.detail : "It walks away.";
+  else if (["aim", "shot", "dead"].includes(c.phase)) status = c.phase === "aim" ? "Broke. The gun turns…" : c.phase === "shot" ? "BANG." : `${c.fly.name} is dead.`;
+  $("s-status").textContent = status;
+  const d = c.decision;
+  $("s-pull").innerHTML = d && d.p_spin != null && !["walk", "dead", "shot"].includes(c.phase)
+    ? `Chance it spins again: <b>${Math.round(100 * d.p_spin)}%</b>${visit.length < 3 ? " (the house makes it play 3)" : ""}` : "";
+  const st = c.stats || {};
+  $("s-round").innerHTML = `Spin <b>${visit.length}</b> of 25 at most · walked in with <b>${money(start)}</b>`;
+  $("s-record").innerHTML = `Jackpots <b>${st.jackpots || 0}</b> · the machine paid back <b>${st.payback_pct != null ? st.payback_pct + "%" : "–"}</b> (in the long run ${st.machine_pct || 92}%)`;
+  $("s-spins").innerHTML = visit.slice(-10).map((v) => `<span class="${v.name === "JACKPOT" ? "jp" : v.win ? "w" : ""}" title="${esc(v.reels.join(" "))}, bet ${money(v.bet)}">${v.win ? signed(v.win - v.bet) : signed(-v.bet)}</span>`).join("");
+  banner(c.banner && !(c.show && c.banner.kind === "jackpot") ? c.banner : null);
+}
+
+// ------------------------------------------------------------------ footer: the races
+function raceX(race, i, t) {
+  const xs = race.x[i], f = t / race.every, k = Math.floor(f);
+  if (k >= xs.length - 1) return xs[xs.length - 1];
+  return xs[Math.max(0, k)] + (xs[Math.max(0, k) + 1] - xs[Math.max(0, k)]) * (f - k);
+}
+function renderRace(c) {
+  const w = c.wallet || {}, horses = c.horses || [], pick = c.pick, race = c.race, result = c.result;
+  $("r-name").textContent = c.fly ? c.fly.name : "Fly";
+  const h = pick != null ? horses[pick] : null;
+  $("r-bet").innerHTML = h ? `bets <b>${money(c.stake)}</b> on <b>#${h.n} ${esc(h.name)}</b> at <b>${h.odds}</b> · pays <b>${money(c.stake * h.odds)}</b> if it wins`
+    : `<span style="color:var(--faint)">reading the odds…</span>`;
+  const fresh = c.number !== renderRace.number;
+  renderRace.number = c.number;
+  const el = $("r-money"), prev = renderRace.money;
+  el.textContent = money(w.money || 0);
+  if (prev != null && !fresh && prev !== w.money) { el.className = "num " + (w.money > prev ? "up" : "down"); setTimeout(() => { el.className = "num"; }, 1100); }
+  renderRace.money = w.money;
+  const res = $("r-res");
+  const settled = result && ["finish", "paid", "jackpot"].includes(c.phase);
+  res.className = "res" + (c.fly && c.fly.shot ? " out" : settled ? (result.won ? " win" : " lose") : "");
+  res.textContent = c.fly && c.fly.shot ? "SHOT" : settled ? (result.won ? `WON ${signed(result.paid - c.stake)}` : `LOST ${signed(-c.stake)}`) : "";
+  // the board: live positions during the race, the order at the finish
+  const t = c.race_t || 0, running = race && ["race", "finish", "paid", "jackpot"].includes(c.phase);
+  const xs = horses.map((_, i) => (running ? (c.phase === "race" ? raceX(race, i, t) : race.x[i][race.x[i].length - 1]) : 0));
+  const order = settled ? result.order : running ? xs.map((_, i) => i).sort((a, b) => xs[b] - xs[a]) : horses.map((_, i) => i);
+  const place = {};
+  order.forEach((hi, k) => { place[hi] = k + 1; });
+  const ord = (n) => n + ({ 1: "st", 2: "nd", 3: "rd" }[n] || "th");
+  $("r-board").innerHTML = horses.map((hh, i) => `<tr class="${i === pick ? "pick" : ""}${settled && result.order[0] === i ? " won" : ""}">
+    <td class="pos">${running ? ord(place[i]) : ""}</td>
+    <td class="num" style="background:${hh.silks[0]};color:${hh.silks[1]}">${hh.n}</td>
+    <td>${esc(hh.name)}${i === pick ? ` <span style="color:var(--fly);font-size:11.5px">◀ the fly's bet</span>` : ""}</td>
+    <td class="odds">${hh.odds}</td>
+    <td class="prog"><div><i style="width:${Math.min(100, (xs[i] / ((race && race.track) || 320)) * 100).toFixed(1)}%"></i></div></td></tr>`).join("");
+  let status = "";
+  if (c.phase === "board") status = "The odds are up.";
+  else if (c.phase === "think") status = `${c.fly.name} reads the odds…`;
+  else if (c.phase === "bet") status = h ? `${c.fly.name} backs #${h.n} ${h.name}.` : "";
+  else if (c.phase === "gates") status = "They're in the gates…";
+  else if (c.phase === "race") status = pick != null && running ? `And they're off! #${h.n} is ${ord(place[pick])}.` : "And they're off!";
+  else if (settled) status = `#${horses[result.order[0]].n} ${horses[result.order[0]].name} wins${result.photo ? " in a photo finish" : ""}. ${result.won ? `${c.fly.name} collects ${money(result.paid)}!` : `${c.fly.name} loses ${money(c.stake)}.`}`;
+  else if (["aim", "shot", "dead"].includes(c.phase)) status = c.phase === "aim" ? "Broke. The gun turns…" : c.phase === "shot" ? "BANG." : `${c.fly.name} is dead.`;
+  $("r-status").textContent = status;
+  const st = c.stats || {};
+  $("r-record").innerHTML = `Won <b>${st.won || 0}</b> of <b>${st.races || 0}</b> races · its winners paid back <b>${st.return_pct != null ? st.return_pct + "%" : "–"}</b> of its stakes`;
+  $("r-last").innerHTML = (c.card || []).slice(-8).map((r) => `<span class="${r.paid ? (r.odds >= 10 ? "jp" : "w") : ""}" title="#${r.winner} ${esc(r.name)} won at ${r.odds}; the fly had #${r.pick}">#${r.winner} @ ${r.odds}</span>`).join("");
+  banner(c.banner && !(c.show && c.banner.kind === "jackpot") ? c.banner : null);
 }
 
 // ------------------------------------------------------------------ footer: fights (arena, Play)
@@ -1204,8 +1572,30 @@ function renderStims(list) {
   }
 }
 
+// ------------------------------------------------------------------ the 3D table (casino3d.js, a module; it may load after this)
+let table3d = null;
+function ensure3D() {
+  if (table3d !== null || !window.Casino3D) return table3d;
+  try { table3d = new window.Casino3D($("game3d")); } catch (e) { table3d = false; show("nogl", true); console.error(e); }
+  return table3d;
+}
+const GAME_LABELS = { cards: "The table", slots: "The machine", race: "The track" };
+function renderSession(c) {
+  const sess = c.session || {};
+  $("loop").textContent = `Loop: ${sess.loop ? "on" : "off"}`;
+  $("loop").classList.toggle("on", !!sess.loop);
+  $("end-loop").textContent = `Loop: ${sess.loop ? "on" : "off"}`;
+  show("endpanel", !!sess.waiting);
+  if (sess.waiting) {
+    $("end-title").textContent = sess.next ? `Next: ${GAME_NAMES[sess.next] || "the same again"}…` : "Game over. What next?";
+    for (const b of document.querySelectorAll("#endpanel [data-poke]")) b.classList.toggle("current", b.dataset.poke === c.game);
+  }
+}
+
 const EYE_NOTES = {
-  casino: "The dealt card lights up its slot: ace far left, king far right.",
+  cards: "The dealt card lights up its slot: ace far left, king far right.",
+  slots: "The machine's three reels.",
+  race: "Before the race: a bar per horse, longer for longer odds. Then the race itself.",
   arena: "The fight, as its eyes get it.",
   play: "The game screen, as its eyes get it.",
   manual: "The game screen, as its eyes get it.",
@@ -1213,20 +1603,41 @@ const EYE_NOTES = {
 };
 function render(s) {
   const st = s.stats || {};
-  $("mode").textContent = MODES[s.mode] || s.mode || "Live";
+  const casino = !!s.casino, c = s.casino || {}, game = casino ? c.game : null;
+  $("mode").textContent = casino ? GAME_NAMES[game] || "Casino" : MODES[s.mode] || s.mode || "Live";
   $("title").textContent = s.title || "";
-  document.title = `${MODES[s.mode] || "Fly brain"}, live`;
+  document.title = `${casino ? GAME_NAMES[game] || "Casino" : MODES[s.mode] || "Fly brain"}, live`;
   $("readout").innerHTML = `<b>${fmt(N)}</b> neurons<br><b>${fmt(st.spikes_per_s)}</b> spikes a second<br>`
     + `<b>${(st.active_pct || 0).toFixed(1)}%</b> fired in the last 0.1 s<br><b>${(st.excited_pct || 0).toFixed(2)}%</b> firing unusually`;
-  const casino = !!s.casino;
-  show("learned", casino); show("scorecard", casino); show("excited", !casino); show("sound", casino);
-  if (casino) { renderStrategy(s.casino.strategy); renderScorecard(s.casino.stats || {}); } else renderTypes(s.top_types || []);
+  $("stage").classList.toggle("split", casino);
+  show("brain-label", casino);
+  show("purse", casino); show("sound", casino); show("loop", casino);
+  if (casino && soundOn && !unlocked) show("sound-hint", true);
+  show("walletcard", casino); show("scorecard", casino);
+  show("learned", game === "cards"); show("slotlearned", game === "slots"); show("racelearned", game === "race");
+  show("excited", !casino);
   renderFear(s);
-  const doomed = s.casino && (s.casino.target || []).includes("fly") ? s.casino.phase : "";
+  const doomed = casino && (c.target || []).includes("fly") ? c.phase : "";
   $("eye-note").textContent = doomed === "aim" ? "The gun barrel, coming at it: its looming detectors fire."
-    : doomed === "shot" || doomed === "dead" ? "The last thing it saw." : EYE_NOTES[s.mode] || "";
-  show("match", casino);
-  if (casino) { onPhase(s.casino); renderMatch(s.casino); } else { banner(null); if (fx.game !== null) { fx.game = null; newGame(); } }
+    : doomed === "shot" || doomed === "dead" ? "The last thing it saw." : EYE_NOTES[game || s.mode] || "";
+  show("match", game === "cards"); show("slothud", game === "slots"); show("racehud", game === "race");
+  if (casino) {
+    $("game-label").textContent = game === "cards" && !c.bot ? "The table (no opponent)" : GAME_LABELS[game] || "";
+    onPhase(c);
+    renderWallet(c.wallet);
+    renderScorecard(game, c.stats || {});
+    if (game === "cards") { renderStrategy(c.strategy); renderMatch(c); }
+    else if (game === "slots") { renderTug(c, s.fear ? s.fear.terror : 0); renderSlots(c, s); }
+    else if (game === "race") { renderPicks(c.stats || {}); renderRace(c); }
+    renderSession(c);
+    const t3 = ensure3D();
+    if (t3) t3.update(c);
+  } else {
+    renderTypes(s.top_types || []);
+    banner(null);
+    show("endpanel", false);
+    if (fx.game !== null) { fx.game = null; newGame(); }
+  }
   show("fight", !casino && !!s.fight);
   if (!casino && s.fight) renderFight(s.fight, s.actions, s.log);
   const stims = !!(s.pokes && s.pokes.length);

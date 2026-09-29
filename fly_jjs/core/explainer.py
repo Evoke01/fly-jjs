@@ -35,7 +35,7 @@ Instead of using basic bots, we connected the **actual 3D brain wiring map (conn
 - **🏟️ Arena `[A]`:** Watch and train the fly in a simulated JJS fight, no Roblox needed.
 - **🎯 Calibrate `[C]`:** Show the fly where your health bars and your character are, once.
 - **🧠 3D Brain `[B]`:** All 166,700 neurons live in your browser; poke the fly and watch it react.
-- **🎰 Casino `[G]`:** A card death match vs a bot: three rounds, then whoever is behind gets shot. Terror meter read from its real fear circuit.
+- **🎰 Casino `[G]`:** $1,000 per fly, and broke means shot. A card death match vs a 3D tin robot (whoever is behind after three rounds gets shot), a slot machine, and bets on totally random horse races. Terror meter read from its real fear circuit.
 
 ---
 
@@ -64,6 +64,7 @@ Instead of using basic bots, we connected the **actual 3D brain wiring map (conn
   • Dopamine = surprise (reward-prediction-error learning)
   • Reads 59,310 neurons; fighting instincts; held keys & camera tracking
   • Manual Treat/Penalty Mode [M], Live Telemetry [L], Arena [A], Calibrate [C]
-  • 3D Brain [B]: every neuron live in the browser | Casino [G]: gambling with fear
+  • 3D Brain [B]: every neuron live in the browser
+  • Casino [G]: death match, slots, horse races; $1,000 a fly, broke = shot
   """)
         input("  Press Enter to return to main menu...")

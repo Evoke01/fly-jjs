@@ -23,7 +23,11 @@ import numpy as np
 import cv2
 
 DEFAULT_PORT = 8765
-PAGE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web", "brain3d.html")
+WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
+PAGE = os.path.join(WEB_DIR, "brain3d.html")
+# Files the page loads from /web/ (its 3D scenes, three.js, the sounds): these kinds only,
+# and only from inside the web folder.
+STATIC_TYPES = {".js": "text/javascript; charset=utf-8", ".mp3": "audio/mpeg", ".css": "text/css; charset=utf-8"}
 # Each neuron keeps a fast spike trace (one spike adds 1, decaying over ACTIVITY_TAU) and
 # the slow running mean and variance of that trace. The page glows with how unusual a
 # neuron's firing is for that neuron (a z-score, in the spirit of dF/F in calcium
@@ -532,8 +536,20 @@ class _Handler(BaseHTTPRequestHandler):
                 self._send(b"", "image/png", 204)
             else:
                 self._send(png, "image/png")
+        elif path.startswith("/web/"):
+            self._static(path[len("/web/"):])
         else:
             self._send(b"not found", "text/plain", 404)
+
+    def _static(self, rel):
+        root = os.path.realpath(WEB_DIR)
+        full = os.path.realpath(os.path.join(root, rel))
+        kind = STATIC_TYPES.get(os.path.splitext(full)[1].lower())
+        if kind is None or not full.startswith(root + os.sep) or not os.path.isfile(full):
+            self._send(b"not found", "text/plain", 404)
+            return
+        with open(full, "rb") as f:
+            self._send(f.read(), kind)
 
     def do_POST(self):
         dash = self.server.dashboard
