@@ -1106,19 +1106,19 @@ class RaceScene {
       const half = Math.atan(Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) * this.camera.aspect);
       const out = clamp((lead - last + 6) / (2 * Math.tan(half)) + 4.5, 13.5, 60);
       const x = (lead + last) / 2 - 1.5;
-      focus = new THREE.Vector3(x + 0.6, 1.1, 0);
+      focus = new THREE.Vector3(x + 0.6, 1.1, -6);
       pos = new THREE.Vector3(x + 1.5, 1.1 + out * 0.25, out);
       fitted = true;
     } else {
       // at the post for the finish, then along with the horses as they pull up past it
       const a = this.phase === "race" ? 0 : Math.sin((t % 1000) * 0.15) * 0.3;
       const x = this.phase === "race" ? this.track - 1.5 : Math.max(this.track - 1.5, mean - NOSE);
-      focus = new THREE.Vector3(x, 1.2, 0);
+      focus = new THREE.Vector3(x, 1.2, -3);
       pos = new THREE.Vector3(x + 4.5 + Math.sin(a) * 6, 2.8, 14);
     }
     // the other shots are framed for a wide view; a narrow one pulls back so they still fit
     if (!fitted) pos.sub(focus).multiplyScalar(Math.max(1, 1.35 / Math.max(0.3, this.camera.aspect))).add(focus);
-    this.camera.position.lerp(pos, tracking ? 1 : 1 - Math.exp(-dt * 2.5));
+    this.camera.position.lerp(pos, tracking || this.camera.position.distanceTo(pos) > 60 ? 1 : 1 - Math.exp(-dt * 2.5));
     this.camera.lookAt(focus);
     this.sun.position.set(focus.x + 30, 50, 25);
     this.sun.target.position.copy(focus);
