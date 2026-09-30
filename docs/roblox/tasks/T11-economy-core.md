@@ -1,0 +1,56 @@
+<!-- Generated from DESIGN.md by check_design.py --write. Edit DESIGN.md instead. -->
+# T11 Economy core
+
+| | |
+|---|---|
+| Primary agent | **Elena** (A03, Economy & Persistence); spawn as `elena-economy` |
+| Supporting | A05 Soren (targets), A30 Omar (KPI needs) |
+| Where / size | C / M (C cloud agent, PC your machine with the connectome, ST a Roblox Studio step) |
+| Wave | W2 |
+| Depends on | T01 (Cora, A01), T02 (Remy, A02) |
+| Blocks | T31, T32, T50 |
+| Reviewer | Soren (A05) |
+
+## Deliverable
+
+Ledger.settle, drip, awayRoll, floor and zone transitions, mood table, payouts, caps, pity and Mercy state; config-driven
+
+## Owns (edit only these)
+
+- `roblox/src/shared/Economy/`
+- `roblox/src/shared/Config/Balance.luau`
+- `roblox/src/shared/Config/Floors.luau`
+- `roblox/tests/economy/`
+
+## Read first
+
+- [DESIGN.md](../DESIGN.md), sections 3, 6.
+- [CONTRACTS.md](../CONTRACTS.md), the shared types and remotes.
+- Your agent file `.claude/agents/elena-economy.md`.
+- The handoff reports of the items you depend on.
+
+## Handoff checks (paste each command and its result in the PR)
+
+Unit tests; Monte Carlo reproduction: median duels-to-free for win rates 0.36 / 0.57 / 0.77 within 20% of 45 / 20 / 12; `CHK`
+
+`CHK` = `bash roblox/scripts/check.sh` (StyLua check, Selene, `lune run tests/run`, every lint in `roblox/tools/lint/`, `rojo build`). `PYT f` = `python -m pytest tests/f`.
+
+The reviewer signs off in the PR; the Lead merges only with this output pasted.
+
+## Rules
+
+- Edit only the paths you own. Anything else goes through a change request in `docs/roblox/ccr/CCR-<n>.md`; the Lead rules on it and the owner applies it.
+- Contracts (`CONTRACTS.md`, `Types.luau`, `Net/Protocol.luau`, `docs/roblox/schemas/`) are frozen once `contracts-v1` is tagged.
+- `--!strict` Luau. No Roblox APIs in `roblox/src/shared/`; only `Main.*.luau` and `roblox/src/server/Platform/` call `game:GetService`.
+- Run `bash roblox/scripts/check.sh` (and `python -m pytest` for Python work) before pushing, and paste the output in the PR.
+- One branch and one PR per work item: `claude/fr-<ID>-<slug>` into the integration branch.
+- No secrets and no connectome data in git. No names, art or audio from Buckshot Roulette or from the reference Roblox game.
+- Nothing outside a duel may change the debt, lives, items or odds (DESIGN.md sections 3 and 7b).
+
+## Handoff report (PR description)
+
+1. Work item and agent.
+2. Files changed (all inside your owned paths).
+3. Each handoff check above as `command -> result`.
+4. Open risks and follow-ups.
+5. Who consumes this next (see "Blocks").

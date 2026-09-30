@@ -10,6 +10,8 @@ Connect a real fruit fly's digital brain wiring (connectome) directly to **Roblo
 > **⚠️ IMPORTANT DISCLAIMER:**
 > This simulation runs on a **mapped digital connectome** (the MaleCNS map of 166,700 neurons and 25.6 million connections, from biological research). **This is NOT a living biological brain, and NO real animals are involved.**
 
+> 🎲 **Coming next: Fly Roulette**, a Roblox game where you duel the fly to pay off a $1,000,000 debt. Design, agents and task plan: [docs/roblox/README.md](docs/roblox/README.md).
+
 ---
 
 ## ⚡ Quick Rules for Best Performance
