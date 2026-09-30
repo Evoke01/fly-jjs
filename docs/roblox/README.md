@@ -16,10 +16,11 @@ A Buckshot-Roulette-style Roblox game starring the fly from this repo. You owe t
 ## How the build runs
 
 1. The main Claude Code session is the Lead, **Priya**. The specialists are project subagents in `.claude/agents/`; restart the session once so they load, and check them with `/agents`.
-2. Work goes in waves (TASKS.md, section 9.7). For every item in a wave, the Lead spawns its primary specialist (`subagent_type` = the slug, such as `remy-rules`) in a worktree, in the background, with the prompt `Do <ID> exactly as written in docs/roblox/tasks/<brief>.md`.
-3. Each specialist edits only its own paths, opens one PR per item and pastes its handoff checks. The named reviewer signs off, then the Lead merges.
-4. At every wave gate, Hana (HR) files a short retro and staffing note: what failed first time, what got stuck, and whether an agent should be split, merged or added.
-5. Run 6-8 specialists at a time, critical path first: T00 > T01 > T10 > T12 > T30a > T33a > T52a-2 > T53.
+2. All work lands on the integration branch `fly-roulette`. Before Wave 0 the Lead creates it from `main` if this design is merged there, otherwise from the design branch (`claude/vibrant-mccarthy-4okqjy`), and pushes it. It merges into `main` at each milestone gate, so `main` only gets work that passed a gate.
+3. Work goes in waves (TASKS.md, section 9.7). For every item in a wave, the Lead spawns its primary specialist (`subagent_type` = the slug, such as `remy-rules`) in a worktree, in the background, with the prompt `Do <ID> exactly as written in docs/roblox/tasks/<brief>.md`.
+4. Each specialist edits only its own paths, opens one PR per item into `fly-roulette` and pastes its handoff checks. The named reviewer signs off, then the Lead merges.
+5. At every wave gate, Hana (HR) files a short retro and staffing note: what failed first time, what got stuck, and whether an agent should be split, merged or added.
+6. Run 6-8 specialists at a time, critical path first: T00 > T01 > T10 > T12 > T30a > T33a > T52a-2 > T53.
 
 Paste this into the main session to start a wave:
 
@@ -27,7 +28,8 @@ Paste this into the main session to start a wave:
 Read docs/roblox/README.md and docs/roblox/TASKS.md. Execute Wave 0: for every work item listed,
 spawn its primary specialist in a worktree, in the background, with the prompt
 "Do <ID> exactly as written in docs/roblox/tasks/<brief>.md". When they finish, run the handoff
-gates in TASKS.md, merge passing PRs into the integration branch, and stop at the wave gate.
+gates in TASKS.md, merge passing PRs into the fly-roulette branch (create it first if it does not
+exist), and stop at the wave gate.
 ```
 
 ## What only you can do

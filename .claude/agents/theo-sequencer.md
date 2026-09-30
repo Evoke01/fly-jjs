@@ -38,7 +38,7 @@ Fixture timelines are deterministic and every cue id exists in the catalog. Ever
 - Contracts (`CONTRACTS.md`, `Types.luau`, `Net/Protocol.luau`, `docs/roblox/schemas/`) are frozen once `contracts-v1` is tagged.
 - `--!strict` Luau. No Roblox APIs in `roblox/src/shared/`; only `Main.*.luau` and `roblox/src/server/Platform/` call `game:GetService`.
 - Run `bash roblox/scripts/check.sh` (and `python -m pytest` for Python work) before pushing, and paste the output in the PR.
-- One branch and one PR per work item: `claude/fr-<ID>-<slug>` into the integration branch.
+- One branch and one PR per work item: `claude/fr-<ID>-<slug>` into the integration branch `fly-roulette`.
 - No secrets and no connectome data in git. No names, art or audio from Buckshot Roulette or from the reference Roblox game.
 - Nothing outside a duel may change the debt, lives, items or odds (DESIGN.md sections 3 and 7b).
 
