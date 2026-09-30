@@ -3,9 +3,9 @@
 
 Extracted from [DESIGN.md](DESIGN.md) section 9. Definitions: `.claude/agents/<slug>.md`.
 
-### 9.3 The roster: your 39 suggested roles -> 31 named specialists (+ the Lead)
+### 9.3 The roster: your 39 suggested roles -> 32 named specialists (+ the Lead)
 
-Merged where one specialist naturally does both and the dependency chain is serial anyway. UI copy was in your must-have list but not your role list, so it got its own agent; Ines was added for the meta features. Names are placeholders you can change: rename the file in `.claude/agents/` and the `name` inside it.
+Merged where one specialist naturally does both and the dependency chain is serial anyway. UI copy was in your must-have list but not your role list, so it got its own agent; Ines was added for the meta features and Hana (HR) at your request. Names are placeholders you can change: rename the file in `.claude/agents/` and the `name` inside it.
 
 | ID | Name | Role | Slug (`subagent_type`) | Covers your suggested roles |
 |---|---|---|---|---|
@@ -41,6 +41,7 @@ Merged where one specialist naturally does both and the dependency chain is seri
 | A29 | Lex | Compliance & Accessibility | `lex-compliance` | Compliance / Accessibility |
 | A30 | Omar | Live-Ops & Telemetry | `omar-liveops` | Telemetry, Publishing / Live-Ops |
 | A31 | Ines | Progression & Store | `ines-progression` | (added for the meta features: levels, titles, Buzz, store, inventory) |
+| A32 | Hana | HR / Agent Operations | `hana-hr` | (added at your request: handbook, onboarding, retros, staffing) |
 
 ### 9.6 Agent Directory
 
@@ -301,3 +302,11 @@ Every agent works only in its owned paths, reads its task brief and its own agen
 - May edit: owned paths; profile-field changes go through a change request to Cora (contracts) and Elena (DataService).
 - Inputs: section 7b, the PlayerData v1 meta fields, DataService, match events, the Roblox MarketplaceService docs. Outputs: ProgressionService, StoreService, catalog and title registry.
 - Handoff when: each gate passes, receipts are idempotent, and Sasha has signed off.
+
+**A32 Hana, HR / Agent Operations** - `hana-hr`
+- Purpose: people operations for the agent team: the handbook, onboarding, a retro after every wave, workload and staffing, and mediating review disagreements before they reach the Lead.
+- Tasks: primary T63 (W0). Ongoing: one retro and staffing note after every wave gate.
+- Owns: D/people/.
+- May edit: owned paths; never edits code, briefs or agent files; changes to agents (names, roles, splits, merges, new hires) go to Priya as change requests.
+- Inputs: DESIGN.md section 9, handoff reports, gate results, change requests. Outputs: the handbook, the onboarding checklist, retros and staffing recommendations.
+- Handoff when: Priya has approved the handbook and templates, and each wave's retro is filed before the next wave starts.

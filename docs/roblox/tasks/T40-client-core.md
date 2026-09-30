@@ -27,6 +27,7 @@ Hall third-person and back-room first-person cameras with transitions and focus 
 - [DESIGN.md](../DESIGN.md), sections 6, 7.
 - [CONTRACTS.md](../CONTRACTS.md), the shared types and remotes.
 - Your agent file `.claude/agents/kiran-client.md`.
+- The team handbook `docs/roblox/people/HANDBOOK.md`, once Hana has written it (T63).
 - The handoff reports of the items you depend on.
 
 ## Handoff checks (paste each command and its result in the PR)

@@ -25,6 +25,7 @@ Publish checklist (questionnaire, icon and thumbnail specs, store and developer-
 - [DESIGN.md](../DESIGN.md), sections 7b, 8.
 - [CONTRACTS.md](../CONTRACTS.md), the shared types and remotes.
 - Your agent file `.claude/agents/omar-liveops.md`.
+- The team handbook `docs/roblox/people/HANDBOOK.md`, once Hana has written it (T63).
 - The handoff reports of the items you depend on.
 
 ## Handoff checks (paste each command and its result in the PR)

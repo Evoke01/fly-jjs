@@ -1,12 +1,12 @@
 # Fly Roulette: System Design v0.3 (working title)
 
-> **v0.3 = v0.2 + your reference screenshots + human agent names.** New since v0.2: section 7 now specifies the look and feel from your screenshots (the Hall lobby, private back rooms, charge box, floating hands, captions, turn banner, HUD); new section 7b covers the meta features you picked (levels, XP and titles; daily quests and codes; a cosmetic store and inventory); the rules engine supports 2-4 seats from day one while the MVP stays solo; the weapon stays a zap racket; every agent now has a human first name and a `name-role` slug; one specialist (Ines) and three work items (T60-T62) were added for the meta features. The duel rules and economy (sections 2-5) are unchanged apart from a 60 s turn timer and the Buzz rule in section 3.
+> **v0.3 = v0.2 + your reference screenshots + human agent names.** New since v0.2: section 7 now specifies the look and feel from your screenshots (the Hall lobby, private back rooms, charge box, floating hands, captions, turn banner, HUD); new section 7b covers the meta features you picked (levels, XP and titles; daily quests and codes; a cosmetic store and inventory); the rules engine supports 2-4 seats from day one while the MVP stays solo; the weapon stays a zap racket; every agent now has a human first name and a `name-role` slug; one specialist (Ines) and three work items (T60-T62) were added for the meta features, and at your request an HR agent (Hana) with one work item (T63). The duel rules and economy (sections 2-5) are unchanged apart from a 60 s turn timer and the Buzz rule in section 3.
 
 ## Context
 
 `fly-jjs` already holds the fly: a simulated fruit-fly brain (MaleCNS connectome, 166,700 neurons, `flybrain` package) that plays Roblox JJS from screen capture, plus `fly_jjs/core/casino.py`, a Higher-or-Lower death match where the fly learns from dopamine (PAM/PPL1 neurons), is afraid through a measured fear circuit (LC4/LPLC2/PPL1 -> giant fibre DNp01) and gets "shot" if it ends behind.
 
-The new project is a Roblox game in the style of Buckshot Roulette starring that fly. You owe $1,000,000, the debt grows by random interest, and you pay it off by winning duels against randomly drawn fly types (3 lives each). This document is the system design, cut into 27 tasks (49 work items after splitting them for ownership and adding the three meta features you picked) that named specialist subagents build. **No game code is written in this session.** After approval I only write the design, the agent definitions and the task briefs into the repo (last section).
+The new project is a Roblox game in the style of Buckshot Roulette starring that fly. You owe $1,000,000, the debt grows by random interest, and you pay it off by winning duels against randomly drawn fly types (3 lives each). This document is the system design, cut into 27 tasks (50 work items after splitting them for ownership and adding the meta features and the HR agent) that named specialist subagents build. **No game code is written in this session.** After approval I only write the design, the agent definitions and the task briefs into the repo (last section).
 
 ## Decisions
 
@@ -34,7 +34,7 @@ Assumptions I made (tell me if any is wrong):
 7. Every number below is a starting guess; the balance sim (T50) tunes it.
 8. "Test on your glove" replaces "shoot yourself" (placeholder wording).
 9. You get one extra interest roll if you return after 12+ hours away (at most one per 24 h). Remove it if you'd rather not punish returning players.
-10. QA and playtesting share one agent, and telemetry shares one with live-ops. With Ines added for the meta features the roster is 31 specialists plus the Lead (section 9.3 shows every merge).
+10. QA and playtesting share one agent, and telemetry shares one with live-ops. With Ines (meta features) and Hana (HR) added, the roster is 32 specialists plus the Lead (section 9.3 shows every merge).
 11. Every agent has a human first name, which you can change. Its slug is `name-role` (for example `remy-rules`), so "spawn Remy" is unambiguous.
 12. Your reference shows 5 bolts per player. The fly game keeps your 3 lives, so its charge box shows 3 bolts per side.
 
@@ -303,11 +303,12 @@ Your four screenshots are the reference. Each element maps to the fly game as be
 ### 9.1 Operating model
 
 - **The Lead (A00 Priya, Project Architect) is the main Claude Code session.** The Lead never writes product code. It reads `docs/roblox/TASKS.md`, spawns the primary agent of every ready work item (manifest in 9.7), checks the handoff gate (9.5), merges, and starts the next wave.
-- **31 specialists (A01-A31)**, each with a human first name, are defined as project subagents in `.claude/agents/<slug>.md` (frontmatter `name`, `description`, `tools`; body = role, owned paths, rules, definition of done, handoff report). The slug is `name-role` (for example `remy-rules`) and is the `subagent_type` to spawn, so "spawn Remy for T10" means `subagent_type = remy-rules`. Confirm the file format with `/agents` after restarting the session.
+- **32 specialists (A01-A32)**, each with a human first name, are defined as project subagents in `.claude/agents/<slug>.md` (frontmatter `name`, `description`, `tools`; body = role, owned paths, rules, definition of done, handoff report). The slug is `name-role` (for example `remy-rules`) and is the `subagent_type` to spawn, so "spawn Remy for T10" means `subagent_type = remy-rules`. Confirm the file format with `/agents` after restarting the session.
 - **Spawn recipe:** `subagent_type = <slug>`, `isolation = "worktree"`, run in the background, prompt = `Do <ID> exactly as written in docs/roblox/tasks/<ID>-<title>.md`. Follow-ups, fixes and later tasks for the same specialist go through SendMessage so it keeps its context.
 - **Paste-ready instruction for the main session:** `Read docs/roblox/README.md and docs/roblox/TASKS.md. Execute Wave <n>: for every work item listed, spawn its primary specialist as described in 9.1, in the background. When they finish, run the handoff gates in TASKS.md, merge passing PRs into the integration branch, and stop at the wave gate.`
 - **One branch and one PR per work item** (`claude/fr-<ID>-<slug>` into the integration branch). Supporting agents do not edit the primary's paths: they review the PR (comment sign-off) or answer questions through the Lead.
 - **Ownership is by path.** Anything an agent needs changed outside its paths goes through a change request `docs/roblox/ccr/CCR-<n>.md` (who, what, why, impacted tasks). The Lead rules; the owner applies it.
+- **Retros:** at every wave gate the Lead sends the gate results to Hana (HR), who files a short retro and staffing note; her recommendations come back as change requests.
 - **Handoff report** (required in every PR description): task and agent; files changed (all inside owned paths); each acceptance check as command -> result; open risks; next consumers.
 - **Concurrency:** up to 15 items are ready at once. Run 6-8 at a time, critical-path items first: `T00 > T01 > T10 > T12 > T30a > T33a > T52a-2 > T53` (and `> T51`).
 
@@ -325,13 +326,14 @@ Your four screenshots are the reference. Each element maps to the fly game as be
 | T52 | T52a-1/-2 Compliance and accessibility, T52b-1/-2 Performance | separate specialties; -1 is an early requirements memo, -2 the final audit |
 | new | T47 Narrative bible, T48 Dialogue and barks, T49 UI copy | required specialists had no task |
 | new (v0.3) | T60 Progression core, T61 Daily quests and codes, T62 Cosmetic store and inventory | the meta features you picked from your reference |
+| new (v0.3) | T63 Team handbook, onboarding and retros | you asked for an HR agent |
 | T01, T10, T30a, T41, T44a, T45a-d | same IDs, wider scope | 2-4 seat contracts and engine, the Hall and back rooms, the reference look (section 7) |
 
 Dependencies: split tasks inherit their parent's. The only edits to existing edges are (a) T43 starts from T01 and T40 with placeholder clips and takes the final clips from T24 (v0.1 already said "placeholders first"), and (b) edges added by the new tasks, all visible in the table below.
 
-### 9.3 The roster: your 39 suggested roles -> 31 named specialists (+ the Lead)
+### 9.3 The roster: your 39 suggested roles -> 32 named specialists (+ the Lead)
 
-Merged where one specialist naturally does both and the dependency chain is serial anyway. UI copy was in your must-have list but not your role list, so it got its own agent; Ines was added for the meta features. Names are placeholders you can change: rename the file in `.claude/agents/` and the `name` inside it.
+Merged where one specialist naturally does both and the dependency chain is serial anyway. UI copy was in your must-have list but not your role list, so it got its own agent; Ines was added for the meta features and Hana (HR) at your request. Names are placeholders you can change: rename the file in `.claude/agents/` and the `name` inside it.
 
 | ID | Name | Role | Slug (`subagent_type`) | Covers your suggested roles |
 |---|---|---|---|---|
@@ -367,6 +369,7 @@ Merged where one specialist naturally does both and the dependency chain is seri
 | A29 | Lex | Compliance & Accessibility | `lex-compliance` | Compliance / Accessibility |
 | A30 | Omar | Live-Ops & Telemetry | `omar-liveops` | Telemetry, Publishing / Live-Ops |
 | A31 | Ines | Progression & Store | `ines-progression` | (added for the meta features: levels, titles, Buzz, store, inventory) |
+| A32 | Hana | HR / Agent Operations | `hana-hr` | (added at your request: handbook, onboarding, retros, staffing) |
 
 ### 9.4 Assignment table: every work item, one primary agent
 
@@ -423,6 +426,7 @@ Merged where one specialist naturally does both and the dependency chain is seri
 | **T60** Progression core (C; M) | A31 Ines | A03 Elena (profile fields), A10 Sasha (grant validation), A12 Uma (HUD), A23 Nora and A25 Tessa (title names), A30 Omar (rewards telemetry) | S/Progression/, S/Config/Progression.luau, SV/Services/ProgressionService.luau, R/tests/progression/ | T01 (A01), T31 (A03) | XP curve and level rewards, title registry with unlock rules (incl. RAGE QUITTER for 10 minutes), rank badge view-model (floor + debt repaid), Buzz wallet with an idempotent transaction log, `Meta` updates to the client |
 | **T61** Daily quests and codes (C; M) | A30 Omar | A31 Ines (rewards), A25 Tessa (quest texts), A12 Uma (panel), A10 Sasha (code abuse), A29 Lex (no purchase required) | S/Content/Quests.luau, SV/Services/QuestService.luau, SV/Data/Codes.luau, R/tests/quests/ | T60 (A31), T30a (A09) | Quest engine over match events, a pool of 20 or more quests, a daily rotation of 3 seeded by player and UTC day, claims, redeem codes (one use per player, expiry) |
 | **T62** Cosmetic store and inventory (C+ST; M) | A31 Ines | A10 Sasha (receipts), A12 Uma (screens), A17 Otto, A18 Rigo and A16 Mara (skin variants), A29 Lex (pricing policy), A30 Omar (catalog telemetry) | S/Content/Catalog.luau, SV/Services/StoreService.luau, R/tests/store/ | T01 (A01), T31 (A03), T60 (A31) | Catalog (racket, glove, felt and title-plate skins) at fixed Buzz or Robux prices; Buzz purchases; Robux developer products via idempotent `ProcessReceipt`; inventory, equip and ownership checks; equipped cosmetics sent to back rooms and watchers |
+| **T63** Team handbook, onboarding and retros (C; S) | A32 Hana | A00 Priya (process owner), A27 Quinn (gate data), A29 Lex (conduct and policy) | D/people/ | none | A team handbook (owned paths, change requests, branches and PRs, handoff reports, review etiquette, escalation), a first-spawn onboarding checklist, and retro and staffing templates; after every wave gate, one retro (first-try gate passes, rework, blocked time, review turnaround) with staffing recommendations (split, merge or add agents; brief fixes) sent to Priya as change requests |
 
 ### 9.5 Handoff gates: how each item is verified before handoff
 
@@ -479,6 +483,7 @@ Merged where one specialist naturally does both and the dependency chain is seri
 | T60 | Unit tests: XP curve increasing, level rewards granted once, title unlocks from event fixtures, RAGE QUITTER applied on a mid-duel leave and gone after 10 minutes, Buzz log idempotent under duplicate grant ids, rank badge matches the ledger; `CHK` | A03 Elena, A10 Sasha |
 | T61 | Rotation deterministic by player and UTC day; progress counted from event fixtures; claim idempotent; codes case-insensitive, one use per player, expiry honoured, never sent to the client; no quest needs a purchase; `CHK` | A31 Ines, A10 Sasha |
 | T62 | Duplicate receipt ids grant once; a failed save returns NotProcessedYet; Buzz purchase is atomic; equip requires ownership; catalog lint (price, category, asset ids for every item, no chance-based item); `CHK` | A10 Sasha, A29 Lex |
+| T63 | The handbook covers every rule in the briefs' Rules section, the handoff report and escalation; the onboarding checklist fits on one screen; retro and staffing templates exist; the first retro is filed at gate M0 | A00 Priya |
 
 ### 9.6 Agent Directory
 
@@ -740,12 +745,20 @@ Every agent works only in its owned paths, reads its task brief and its own agen
 - Inputs: section 7b, the PlayerData v1 meta fields, DataService, match events, the Roblox MarketplaceService docs. Outputs: ProgressionService, StoreService, catalog and title registry.
 - Handoff when: each gate passes, receipts are idempotent, and Sasha has signed off.
 
+**A32 Hana, HR / Agent Operations** - `hana-hr`
+- Purpose: people operations for the agent team: the handbook, onboarding, a retro after every wave, workload and staffing, and mediating review disagreements before they reach the Lead.
+- Tasks: primary T63 (W0). Ongoing: one retro and staffing note after every wave gate.
+- Owns: D/people/.
+- May edit: owned paths; never edits code, briefs or agent files; changes to agents (names, roles, splits, merges, new hires) go to Priya as change requests.
+- Inputs: DESIGN.md section 9, handoff reports, gate results, change requests. Outputs: the handbook, the onboarding checklist, retros and staffing recommendations.
+- Handoff when: Priya has approved the handbook and templates, and each wave's retro is filed before the next wave starts.
+
 ### 9.7 Execution waves and spawn manifest
 
-Earliest-start schedule from the dependency graph (49 items, 8 waves, at most 15 in parallel). Each entry is `slug->item`; the slug is the `subagent_type` to spawn.
+Earliest-start schedule from the dependency graph (50 items, 8 waves, at most 15 in parallel). Each entry is `slug->item`; the slug is the `subagent_type` to spawn.
 
 ```
-W0  cora-contracts->T00 | nora-narrative->T47 | lex-compliance->T52a-1 | petra-perf->T52b-1
+W0  cora-contracts->T00 | nora-narrative->T47 | lex-compliance->T52a-1 | petra-perf->T52b-1 | hana-hr->T63
 W1  cora-contracts->T01 | remy-rules->T02                                                                       gate M0
 W2  remy-rules->T10 | elena-economy->T11 | bea-brain->T20 | mateo-backend->T30c | kiran-client->T40 |
     cora-contracts->T44a | dalia-dialogue->T48 | tessa-copy->T49
@@ -763,7 +776,7 @@ W7  omar-liveops->T53                                                           
 
 | Wave | Items | Agents busy | Human gates in this wave |
 |---|---|---|---|
-| W0 | 4 | Cora, Nora, Lex, Petra | none |
+| W0 | 5 | Cora, Nora, Lex, Petra, Hana | none |
 | W1 | 2 | Cora, Remy | none |
 | W2 | 8 | Remy, Elena, Bea, Mateo, Kiran, Cora, Dalia, Tessa | none |
 | W3 | 15 | Felix, Soren, Bea, Mateo, Elena, Uma, Theo, Vera, Mara, Leo, Otto, Rigo, Zara, Wren, Mika | H1 starts as props, rigs and audio land |
@@ -806,7 +819,7 @@ For the design deliverable (this session, after approval), one script checks:
 - every dependency exists, the graph has no cycle, and the waves recomputed from the dependencies equal the manifest in 9.7;
 - no two agents own overlapping paths (the T50 values-only handoff and the `-1`/`-2` pairs of one owner are the documented exceptions);
 - every work item has a brief `docs/roblox/tasks/<ID>-*.md` that names its agent, lists its owned paths and contains its 9.5 handoff checks;
-- 32 agent files exist in `.claude/agents/` (31 specialists and Priya) with `name` equal to the file name and a non-empty description, and the names match the roster in 9.3;
+- 33 agent files exist in `.claude/agents/` (32 specialists and Priya) with `name` equal to the file name and a non-empty description, and the names match the roster in 9.3;
 - all relative links resolve; and the economy Monte Carlo, re-run from the doc's numbers, reproduces the table in section 3.
 
 For the later phases (each brief's Acceptance section makes these concrete): `CHK` for Luau, shared RNG and rules vectors in both `lune` and `python -m pytest`, FakeBrain pytest in CI plus the real-brain evaluation on your PC, the T50 balance report against section 3, and the Studio playtest loop (join -> tutorial -> duels -> interest call -> Freed or Basement -> rejoin with saved debt) on desktop, phone and gamepad.
@@ -824,6 +837,7 @@ For the later phases (each brief's Acceptance section makes these concrete): `CH
 | `AGENTS.md` | Roster and agent directory (generated from this document) |
 | `tasks/<ID>-<slug>.md` | One brief per work item (generated) |
 | `ccr/` | Change requests to frozen contracts |
+| `people/` | Hana's team handbook, onboarding checklist, retros and staffing notes (created in T63) |
 | `check_design.py` | Regenerates the generated files (`--write`) and checks everything is consistent (default) |
 
 Agent definitions live in `.claude/agents/<slug>.md` (generated).

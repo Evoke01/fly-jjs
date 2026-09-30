@@ -28,6 +28,7 @@ zapper_v1 reducer for 2-4 seats (the MVP ruleset uses 2): loads, turns, 5 MVP it
 - [DESIGN.md](../DESIGN.md), sections 2, 6.
 - [CONTRACTS.md](../CONTRACTS.md), the shared types and remotes.
 - Your agent file `.claude/agents/remy-rules.md`.
+- The team handbook `docs/roblox/people/HANDBOOK.md`, once Hana has written it (T63).
 - The handoff reports of the items you depend on.
 
 ## Handoff checks (paste each command and its result in the PR)

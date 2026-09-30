@@ -26,6 +26,7 @@ Eval harness (agreement with the solver, win rate vs archetypes, decision entrop
 - [DESIGN.md](../DESIGN.md), sections 4, 5.
 - [CONTRACTS.md](../CONTRACTS.md), the shared types and remotes.
 - Your agent file `.claude/agents/soren-solver.md`.
+- The team handbook `docs/roblox/people/HANDBOOK.md`, once Hana has written it (T63).
 - The handoff reports of the items you depend on.
 
 ## Handoff checks (paste each command and its result in the PR)

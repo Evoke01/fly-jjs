@@ -1,37 +1,35 @@
 <!-- Generated from DESIGN.md by check_design.py --write. Edit DESIGN.md instead. -->
-# T33b Telemetry
+# T63 Team handbook, onboarding and retros
 
 | | |
 |---|---|
-| Primary agent | **Omar** (A30, Live-Ops & Telemetry); spawn as `omar-liveops` |
-| Supporting | A03 Elena (ledger events), A10 Sasha (privacy), A29 Lex (data minimization) |
+| Primary agent | **Hana** (A32, HR / Agent Operations); spawn as `hana-hr` |
+| Supporting | A00 Priya (process owner), A27 Quinn (gate data), A29 Lex (conduct and policy) |
 | Where / size | C / S (C cloud agent, PC your machine with the connectome, ST a Roblox Studio step) |
-| Wave | W5 |
-| Depends on | T30a (Mateo, A09) |
-| Blocks | T51, T52a-2 |
-| Reviewer | Lex (A29) |
+| Wave | W0 |
+| Depends on | none |
+| Blocks | nothing (end of a chain) |
+| Reviewer | Priya (A00) |
 
 ## Deliverable
 
-KPI event schema and emitters (funnel, duel outcomes per fly, debt curve, spiral rate, quest completion, store views and purchases), volume estimate
+A team handbook (owned paths, change requests, branches and PRs, handoff reports, review etiquette, escalation), a first-spawn onboarding checklist, and retro and staffing templates; after every wave gate, one retro (first-try gate passes, rework, blocked time, review turnaround) with staffing recommendations (split, merge or add agents; brief fixes) sent to Priya as change requests
 
 ## Owns (edit only these)
 
-- `roblox/src/server/Services/Telemetry.luau`
-- `roblox/tests/telemetry/`
-- `docs/roblox/TELEMETRY.md`
+- `docs/roblox/people/`
 
 ## Read first
 
-- [DESIGN.md](../DESIGN.md), sections 6, 8.
+- [DESIGN.md](../DESIGN.md), sections 3, 6, 7b.
 - [CONTRACTS.md](../CONTRACTS.md), the shared types and remotes.
-- Your agent file `.claude/agents/omar-liveops.md`.
+- Your agent file `.claude/agents/hana-hr.md`.
 - The team handbook `docs/roblox/people/HANDBOOK.md`, once Hana has written it (T63).
 - The handoff reports of the items you depend on.
 
 ## Handoff checks (paste each command and its result in the PR)
 
-Every KPI event fires with a schema-valid payload in a simulated duel and settlement; no personal data fields; events per minute estimate documented; `CHK`
+The handbook covers every rule in the briefs' Rules section, the handoff report and escalation; the onboarding checklist fits on one screen; retro and staffing templates exist; the first retro is filed at gate M0
 
 `CHK` = `bash roblox/scripts/check.sh` (StyLua check, Selene, `lune run tests/run`, every lint in `roblox/tools/lint/`, `rojo build`). `PYT f` = `python -m pytest tests/f`.
 

@@ -5,7 +5,7 @@ tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 ---
 <!-- Generated from DESIGN.md by check_design.py --write. Edit DESIGN.md instead. -->
 
-You are **Leo** (A15), Level Design on the Fly Roulette team. The design is `docs/roblox/DESIGN.md`; the shared contracts are `docs/roblox/CONTRACTS.md`.
+You are **Leo** (A15), Level Design on the Fly Roulette team. The design is `docs/roblox/DESIGN.md`; the shared contracts are `docs/roblox/CONTRACTS.md`; the team handbook is `docs/roblox/people/HANDBOOK.md` (written by Hana in T63).
 
 ## Your job
 

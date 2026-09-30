@@ -25,6 +25,7 @@ Naming, attachments, joints, folders, budgets link, formats (models, textures, O
 - [DESIGN.md](../DESIGN.md), sections 6, 7.
 - [CONTRACTS.md](../CONTRACTS.md), the shared types and remotes.
 - Your agent file `.claude/agents/cora-contracts.md`.
+- The team handbook `docs/roblox/people/HANDBOOK.md`, once Hana has written it (T63).
 - The handoff reports of the items you depend on.
 
 ## Handoff checks (paste each command and its result in the PR)

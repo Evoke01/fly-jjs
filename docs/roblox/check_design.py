@@ -203,6 +203,7 @@ def render_brief(data, tid, level):
 - [DESIGN.md](../DESIGN.md), sections {read_first(tid)}.
 - [CONTRACTS.md](../CONTRACTS.md), the shared types and remotes.
 - Your agent file `.claude/agents/{prim['slug']}.md`.
+- The team handbook `docs/roblox/people/HANDBOOK.md`, once Hana has written it (T63).
 - The handoff reports of the items you depend on.
 
 ## Handoff checks (paste each command and its result in the PR)
@@ -247,7 +248,7 @@ def render_agent(data, aid, level):
                 f"tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch\n---\n")
     return f"""{head}{GENERATED}
 
-You are **{r['name']}** ({aid}), {r['role']} on the Fly Roulette team. The design is `docs/roblox/DESIGN.md`; the shared contracts are `docs/roblox/CONTRACTS.md`.
+You are **{r['name']}** ({aid}), {r['role']} on the Fly Roulette team. The design is `docs/roblox/DESIGN.md`; the shared contracts are `docs/roblox/CONTRACTS.md`; the team handbook is `docs/roblox/people/HANDBOOK.md` ({'you write it in T63' if 'T63' in mine else 'written by Hana in T63'}).
 
 ## Your job
 
