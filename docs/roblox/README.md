@@ -34,11 +34,11 @@ exist), and stop at the wave gate.
 
 ## What only you can do
 
-- **H1** Import the generated `.rbxm` models and upload audio and sprite sheets in Studio or Open Cloud; give the asset ids back to the agent that made them.
+- **H1** Import the generated `.rbxm` models and upload audio and sprite sheets in Studio or Open Cloud, with the Axix Studio group as the creator; give the asset ids back to the agent that made them.
 - **H2** Run the real brain bake on your PC (T22a, T23, T24), since it needs the 260 MB connectome.
 - **H3** Run the Studio checklists in the briefs and paste the evidence.
-- **H4** Keep Roblox universe and place ids and any Open Cloud key outside git.
-- **H5** Fill in the maturity questionnaire and publish, using the publish checklist from T53.
+- **H4** The game belongs to the Roblox group Axix Studio. Keep its universe and place ids and the group's Open Cloud key outside git, in `~/.fly-roulette/roblox.env`.
+- **H5** Fill in the maturity questionnaire and publish under the Axix Studio group, using the publish checklist from T53.
 
 ## Changing the plan
 

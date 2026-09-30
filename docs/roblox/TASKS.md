@@ -189,8 +189,8 @@ Where one agent has two items in a wave (Omar: T33b and T61 in W5), the Lead run
 
 ### 9.8 Human gates (only you can do these)
 
-- **H1 Asset import and upload:** import the `.rbxm` files, upload OGG audio and the sprite sheets in Studio or via Open Cloud, and give the asset ids to the producing agent, who updates its manifest.
+- **H1 Asset import and upload:** import the `.rbxm` files, upload OGG audio and the sprite sheets in Studio or via Open Cloud with the **Axix Studio** group as the creator (so the group's experience can use every asset, audio included), and give the asset ids to the producing agent, who updates its manifest.
 - **H2 Real brain bake on your PC:** run the T22a, T23 and T24 commands from `D/BRAIN_PIPELINE.md`; commit the generated packs and sheets (or hand them to Pax and Vera).
 - **H3 Studio checks:** run the Studio checklists in the T40-T46, T45b and T51 briefs and paste the evidence.
-- **H4 Credentials:** Roblox universe and place ids, and any Open Cloud key, are supplied outside git.
-- **H5 Publish:** submit the questionnaire and publish using `D/PUBLISH_CHECKLIST.md`.
+- **H4 Credentials:** the experience belongs to the Roblox group **Axix Studio**, not a personal account. Its universe and place ids, the group id and the group's Open Cloud key are supplied outside git, in `~/.fly-roulette/roblox.env` on your PC.
+- **H5 Publish:** submit the questionnaire and publish under the Axix Studio group using `D/PUBLISH_CHECKLIST.md`.
